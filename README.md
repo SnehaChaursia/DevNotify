@@ -1,4 +1,4 @@
-# Hackathon & Contest Tracker
+# DEV-NOTIFY Tracker
 
 A web application that helps users stay updated on upcoming hackathons and LeetCode contests. The platform allows users to view, register, and set reminders for these events, ensuring they never miss important contests or deadlines.
 
@@ -23,7 +23,7 @@ A web application that helps users stay updated on upcoming hackathons and LeetC
 This project is organized as a monorepo with separate frontend and backend directories:
 
 \`\`\`
-hackathon-tracker/
+Dev-Notify/
 ├── frontend/         # React frontend application
 ├── backend/          # Node.js/Express backend
 └── package.json      # Root package.json with scripts to run both
@@ -40,8 +40,8 @@ hackathon-tracker/
 
 1. Clone the repository
    \`\`\`
-   git clone https://github.com/yourusername/hackathon-tracker.git
-   cd hackathon-tracker
+   git clone https://github.com/SnehaChaursia/DevNotify.git
+   cd .\DevNotify\
    \`\`\`
 
 2. Install all dependencies (frontend and backend)
