@@ -8,37 +8,52 @@ import EventsList from "./components/EventsList"
 import EventDetail from "./components/EventDetail"
 import MyReminders from "./components/MyReminders"
 import ProfilePage from "./pages/ProfilePage"
+import AuthPage from "./pages/AuthPage"
 import ConnectionStatus from "./components/ConnectionStatus"
 import eventsData from "./data/eventsData"
 import { checkReminders } from "./services/ReminderService"
+import { NotificationProvider } from './context/NotificationContext'
+import NotificationBell from './components/NotificationBell'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+
+// EventDetail wrapper component to handle params
+const EventDetailWrapper = ({ events, onBack, onViewDetails }) => {
+  const { eventId } = useParams();
+  const event = events.find((event) => event.id === Number(eventId));
+  
+  if (!event) {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <EventDetail
+      event={event}
+      events={events}
+      onBack={onBack}
+      onViewDetails={onViewDetails}
+    />
+  );
+};
 
 function App() {
-  const [selectedEventId, setSelectedEventId] = useState(null)
   const [showReminders, setShowReminders] = useState(false)
-  const [currentPage, setCurrentPage] = useState("home")
+  const navigate = useNavigate();
 
   // Function to view event details
   const viewEventDetails = (eventId) => {
-    setSelectedEventId(eventId)
-    setCurrentPage("event-detail")
-    window.scrollTo(0, 0)
+    navigate(`/event/${eventId}`);
+    window.scrollTo(0, 0);
   }
 
   // Function to go back to events list
   const goBackToEvents = () => {
-    setSelectedEventId(null)
-    setCurrentPage("home")
+    navigate('/');
   }
 
   // Function to toggle reminders modal
   const toggleRemindersModal = () => {
     setShowReminders(!showReminders)
-  }
-
-  // Function to navigate to profile page
-  const navigateToProfile = () => {
-    setCurrentPage("profile")
-    window.scrollTo(0, 0)
   }
 
   // Check for due reminders periodically
@@ -55,52 +70,78 @@ function App() {
     return () => clearInterval(intervalId)
   }, [])
 
-  // Handle navigation based on URL
-  useEffect(() => {
-    const path = window.location.pathname
-
-    if (path === "/profile") {
-      setCurrentPage("profile")
-    } else if (path.startsWith("/event/")) {
-      const eventId = Number.parseInt(path.split("/").pop())
-      if (!isNaN(eventId)) {
-        setSelectedEventId(eventId)
-        setCurrentPage("event-detail")
-      }
-    }
-  }, [])
+  // Home page component
+  const HomePage = () => (
+    <>
+      <Introduction />
+      <EventsList 
+        events={eventsData} 
+        title="Explore Hackathons & Contests" 
+        onViewDetails={viewEventDetails} 
+      />
+    </>
+  )
 
   return (
     <AuthProvider>
-      <div className="App">
-        <Navbar onViewReminders={toggleRemindersModal} onNavigateToProfile={navigateToProfile} />
+      <NotificationProvider>
+        <Toaster position="top-right" />
+        <div className="min-h-screen bg-gray-100">
+          <nav className="bg-white shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between h-16">
+                <div className="flex">
+                  <Navbar onViewReminders={toggleRemindersModal} />
+                </div>
+                <div className="flex items-center">
+                  <NotificationBell />
+                  <div className="ml-4 flex items-center md:ml-6">
+                    {/* User menu */}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </nav>
 
-        {currentPage === "home" && (
-          <>
-            <Introduction />
-            <EventsList events={eventsData} title="Explore Hackathons & Contests" onViewDetails={viewEventDetails} />
-          </>
-        )}
+          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route 
+                path="/event/:eventId" 
+                element={
+                  <EventDetailWrapper
+                    events={eventsData}
+                    onBack={goBackToEvents}
+                    onViewDetails={viewEventDetails}
+                  />
+                } 
+              />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
 
-        {currentPage === "event-detail" && (
-          <EventDetail
-            event={eventsData.find((event) => event.id === selectedEventId)}
-            events={eventsData}
-            onBack={goBackToEvents}
-            onViewDetails={viewEventDetails}
-          />
-        )}
+            {/* My Reminders Modal */}
+            <MyReminders 
+              isOpen={showReminders} 
+              onClose={toggleRemindersModal} 
+              onViewEvent={viewEventDetails} 
+            />
 
-        {currentPage === "profile" && <ProfilePage />}
-
-        {/* My Reminders Modal */}
-        <MyReminders isOpen={showReminders} onClose={toggleRemindersModal} onViewEvent={viewEventDetails} />
-
-        {/* Connection Status Indicator */}
-        <ConnectionStatus />
-      </div>
+            {/* Connection Status Indicator */}
+            <ConnectionStatus />
+          </main>
+        </div>
+      </NotificationProvider>
     </AuthProvider>
   )
 }
 
-export default App
+// Wrap App with Router
+const AppWithRouter = () => (
+  <Router>
+    <App />
+  </Router>
+);
+
+export default AppWithRouter;

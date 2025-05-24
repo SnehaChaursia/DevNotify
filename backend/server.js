@@ -5,6 +5,8 @@ const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const dotenv = require("dotenv")
 const { check, validationResult } = require("express-validator")
+const http = require('http');
+const { Server } = require('socket.io');
 
 // Load environment variables
 dotenv.config()
@@ -68,6 +70,26 @@ const userSchema = new mongoose.Schema({
       isNotified: Boolean,
     },
   ],
+  notifications: [
+    {
+      type: {
+        type: String,
+        enum: ['reminder', 'system'],
+        default: 'reminder'
+      },
+      message: String,
+      eventId: Number,
+      eventName: String,
+      isRead: {
+        type: Boolean,
+        default: false
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now,
@@ -118,15 +140,15 @@ app.post(
     check("password", "Please enter a password with 6 or more characters").isLength({ min: 6 }),
   ],
   async (req, res) => {
-    // Validate request
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() })
-    }
-
-    const { name, email, password } = req.body
-
     try {
+      // Validate request
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const { name, email, password } = req.body
+
       // Check if user exists
       let user = await User.findOne({ email })
       if (user) {
@@ -154,16 +176,20 @@ app.post(
         },
       }
 
-      // Sign token using JWT_SECRET environment variable
-      jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" }, (err, token) => {
-        if (err) throw err
-        res.json({ token })
-      })
+      // Sign token
+      const token = jwt.sign(
+        payload,
+        process.env.JWT_SECRET || "your-super-secret-jwt-key",
+        { expiresIn: "7d" }
+      )
+
+      // Return token immediately
+      res.json({ token })
     } catch (err) {
-      console.error(err.message)
-      res.status(500).send("Server error")
+      console.error("Registration Error:", err)
+      res.status(500).json({ errors: [{ msg: "Server error during registration" }] })
     }
-  },
+  }
 )
 
 // Login User
@@ -274,8 +300,59 @@ app.post("/api/users/reminders", auth, async (req, res) => {
       })
     }
 
+    // Add notification
+    user.notifications.push({
+      type: 'reminder',
+      message: `Reminder set for ${eventName}`,
+      eventId,
+      eventName,
+      isRead: false
+    })
+
     await user.save()
-    res.json(user.reminders)
+
+    // Emit notification to the user
+    io.to(req.user.id).emit('notification', {
+      type: 'reminder',
+      message: `Reminder set for ${eventName}`,
+      eventId,
+      eventName,
+      createdAt: new Date()
+    })
+
+    res.json({ 
+      reminders: user.reminders,
+      notification: user.notifications[user.notifications.length - 1]
+    })
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send("Server error")
+  }
+})
+
+// Get notifications
+app.get("/api/users/notifications", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+    res.json(user.notifications)
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send("Server error")
+  }
+})
+
+// Mark notification as read
+app.put("/api/users/notifications/:notificationId/read", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+    const notification = user.notifications.id(req.params.notificationId)
+    
+    if (notification) {
+      notification.isRead = true
+      await user.save()
+    }
+    
+    res.json(user.notifications)
   } catch (err) {
     console.error(err.message)
     res.status(500).send("Server error")
@@ -299,5 +376,23 @@ app.delete("/api/users/reminders/:eventId", auth, async (req, res) => {
 })
 
 // Start server using PORT environment variable
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+const PORT = process.env.PORT || 5000;
+
+// Create HTTP server and Socket.IO server
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('A user connected via Socket.IO');
+  // You can add your real-time event handlers here
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+  });
+});
+
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

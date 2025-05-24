@@ -68,34 +68,39 @@ const SignupForm = ({ onToggleForm }) => {
 
     setIsSubmitting(true)
     setConnectionError(false)
+    setErrors({})
 
     try {
       // Register user
-      const { token } = await registerUser({
+      const response = await registerUser({
         name: formData.name,
         email: formData.email,
         password: formData.password,
       })
 
-      // Get user data
-      const userData = await getCurrentUser()
-
-      // Update auth context
-      login(token, userData)
+      if (response && response.token) {
+        // Get user data
+        const userData = await getCurrentUser()
+        // Update auth context
+        login(response.token, userData)
+      } else {
+        setErrors({ general: "Registration failed. Please try again." })
+      }
     } catch (err) {
       console.error("Signup error:", err)
 
-      // Check if it's a connection error
       if (err.message && (err.message.includes("connection") || err.message.includes("Network Error"))) {
         setConnectionError(true)
-      } else if (err.errors) {
+      } else if (err.errors && Array.isArray(err.errors)) {
         const formErrors = {}
         err.errors.forEach((error) => {
-          formErrors[error.param] = error.msg
+          formErrors[error.param || 'general'] = error.msg
         })
         setErrors(formErrors)
+      } else if (err.msg) {
+        setErrors({ general: err.msg })
       } else {
-        setErrors({ general: err.message || "Registration failed. Please try again." })
+        setErrors({ general: "Registration failed. Please try again." })
       }
     } finally {
       setIsSubmitting(false)

@@ -7,23 +7,25 @@ A web application that helps users stay updated on upcoming hackathons and LeetC
 - User authentication (signup, login, profile management)
 - Browse and filter hackathons and coding contests
 - Save favorite events
-- Set reminders for upcoming events
+- Set reminders for upcoming events with real-time notifications
 - Search functionality
 - Responsive design for all devices
+- Real-time notifications using Socket.IO
+- Browser notifications support
 
 ## Tech Stack
 
-- **Frontend**: React.js
-- **Backend**: Node.js, Express
+- **Frontend**: React.js, Socket.IO Client
+- **Backend**: Node.js, Express, Socket.IO
 - **Database**: MongoDB
 - **Authentication**: JWT (JSON Web Tokens)
+- **Notifications**: Browser Notifications API, Socket.IO
 
 ## Project Structure
 
 This project is organized as a monorepo with separate frontend and backend directories:
 
 ```
-
 Dev-Notify/
 ├── frontend/         # React frontend application
 ├── backend/          # Node.js/Express backend
@@ -37,6 +39,7 @@ Dev-Notify/
 
 - Node.js (v14 or higher)
 - MongoDB (local or Atlas)
+- Modern web browser with notifications support
 
 ### Installation
 
@@ -147,6 +150,55 @@ npm run start\:frontend
 
 ---
 
+## Reminder System
+
+The application includes a comprehensive reminder system:
+
+### Features
+- Set reminders for any event
+- Real-time notifications using Socket.IO
+- Browser notifications support
+- Email notifications (for authenticated users)
+- Reminder management dashboard
+
+### How to Use Reminders
+1. Navigate to any event detail page
+2. Click the bell icon to set a reminder
+3. Grant notification permissions when prompted
+4. Receive notifications when the event is approaching
+
+### Notification Types
+- Browser notifications
+- In-app notifications
+- Email notifications (for authenticated users)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Already in Use**
+   - If port 3000 is in use, the frontend will ask to use a different port
+   - If port 5000 is in use, you can kill the process:
+     ```bash
+     lsof -i :5000 | grep LISTEN | awk '{print $2}' | xargs kill -9
+     ```
+
+2. **MongoDB Connection Issues**
+   - Ensure MongoDB is running locally or your Atlas connection string is correct
+   - Check the MongoDB connection in the backend logs
+
+3. **Notification Permission Issues**
+   - Ensure your browser supports notifications
+   - Check browser settings to allow notifications for localhost
+   - Clear browser cache if notifications are not working
+
+4. **Socket.IO Connection Issues**
+   - Check if the backend server is running
+   - Ensure the FRONTEND_URL in backend .env matches your frontend URL
+   - Check browser console for connection errors
+
+---
+
 ## Development
 
 ### Backend Development
@@ -190,6 +242,9 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)  
 4. Push to the branch (`git push origin feature/amazing-feature`)  
 5. Open a Pull Request  
-```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 
