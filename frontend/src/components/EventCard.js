@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect, useContext } from "react"
 import {
   FaCalendarAlt,
@@ -11,6 +9,18 @@ import {
   FaLaptopCode,
   FaBell,
 } from "react-icons/fa"
+import {
+  Card,
+  CardContent,
+  Box,
+  Typography,
+  Chip,
+  IconButton,
+  Stack,
+  Button,
+  useTheme,
+  alpha,
+} from '@mui/material'
 import { hasReminder } from "../services/ReminderService"
 import { saveEvent } from "../services/api"
 import AuthContext from "../context/AuthContext"
@@ -19,6 +29,7 @@ const EventCard = ({ event, onViewDetails }) => {
   const [isSaved, setIsSaved] = useState(event.isSaved || false)
   const [hasEventReminder, setHasEventReminder] = useState(false)
   const { isAuthenticated, user } = useContext(AuthContext)
+  const theme = useTheme()
 
   useEffect(() => {
     // Check if reminder exists for this event
@@ -52,102 +63,202 @@ const EventCard = ({ event, onViewDetails }) => {
   const eventDate = new Date(event.date)
   const daysRemaining = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24))
 
-  // Determine status color
-  let statusColor = "bg-yellow-500" // Default: Upcoming
-  if (daysRemaining < 0) {
-    statusColor = "bg-gray-500" // Past
-  } else if (daysRemaining === 0) {
-    statusColor = "bg-green-500" // Today
-  } else if (daysRemaining <= 3) {
-    statusColor = "bg-red-500" // Soon
+  // Determine status color and label
+  const getStatusInfo = () => {
+    if (daysRemaining < 0) {
+      return { color: theme.palette.grey[500], label: 'Ended' }
+    } else if (daysRemaining === 0) {
+      return { color: theme.palette.success.main, label: 'Today' }
+    } else if (daysRemaining <= 3) {
+      return { color: theme.palette.error.main, label: 'Soon' }
+    }
+    return { color: theme.palette.warning.main, label: 'Upcoming' }
   }
 
-  return (
-    <div className="event-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition duration-300">
-      <div className={`event-banner h-3 ${event.type === "hackathon" ? "bg-purple-600" : "bg-blue-600"}`}></div>
+  const statusInfo = getStatusInfo()
 
-      <div className="p-5">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center mb-3">
-            <span className={`text-xs font-bold uppercase text-white px-2 py-1 rounded-full mr-2 ${statusColor}`}>
-              {daysRemaining < 0 ? "Ended" : daysRemaining === 0 ? "Today" : daysRemaining <= 3 ? "Soon" : "Upcoming"}
-            </span>
-            <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-              {event.type === "hackathon" ? "Hackathon" : "Contest"}
-            </span>
+  return (
+    <Card 
+      sx={{ 
+        position: 'relative',
+        transition: 'all 0.2s ease-in-out',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        border: '1px solid',
+        borderColor: 'grey.100',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+          borderColor: 'grey.200',
+        },
+        cursor: 'pointer',
+      }}
+      onClick={() => onViewDetails(event.id)}
+    >
+      <Box
+        sx={{
+          height: 4,
+          background: event.type === "hackathon" 
+            ? 'linear-gradient(90deg, #4f46e5, #818cf8)'
+            : 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+        }}
+      />
+
+      <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" gap={1}>
+            <Chip
+              label={statusInfo.label}
+              size="small"
+              sx={{
+                bgcolor: alpha(statusInfo.color, 0.1),
+                color: statusInfo.color,
+                fontWeight: 600,
+                '& .MuiChip-label': { px: 1 },
+              }}
+            />
+            <Chip
+              label={event.type === "hackathon" ? "Hackathon" : "Contest"}
+              size="small"
+              sx={{
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                color: theme.palette.primary.main,
+                fontWeight: 600,
+              }}
+            />
             {hasEventReminder && (
-              <span className="ml-2 text-yellow-500" title="Reminder set">
+              <IconButton
+                size="small"
+                sx={{ 
+                  color: theme.palette.warning.main,
+                  bgcolor: alpha(theme.palette.warning.main, 0.1),
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.warning.main, 0.2),
+                  }
+                }}
+                title="Reminder set"
+              >
                 <FaBell />
-              </span>
+              </IconButton>
             )}
-          </div>
-          <button
+          </Stack>
+          <IconButton
             onClick={toggleSave}
-            className="text-gray-400 hover:text-yellow-500 transition duration-300"
+            sx={{
+              color: isSaved ? theme.palette.warning.main : theme.palette.grey[400],
+              '&:hover': { 
+                color: theme.palette.warning.main,
+                bgcolor: alpha(theme.palette.warning.main, 0.1),
+              },
+            }}
             aria-label={isSaved ? "Remove from saved" : "Save event"}
           >
-            {isSaved ? <FaBookmark className="text-yellow-500" /> : <FaRegBookmark />}
-          </button>
-        </div>
+            {isSaved ? <FaBookmark /> : <FaRegBookmark />}
+          </IconButton>
+        </Box>
 
-        <h3 className="text-xl font-bold text-gray-800 mb-2">{event.name}</h3>
+        <Typography 
+          variant="h6" 
+          component="h3" 
+          sx={{ 
+            mb: 2, 
+            fontWeight: 600,
+            color: theme.palette.text.primary,
+            fontSize: '1.1rem',
+            lineHeight: 1.4,
+          }}
+        >
+          {event.name}
+        </Typography>
 
-        <div className="flex items-center text-gray-600 mb-2">
-          <FaCalendarAlt className="mr-2 text-gray-400" />
-          <span>
-            {new Date(event.date).toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </span>
-        </div>
+        <Stack spacing={1.5} sx={{ mb: 2, flexGrow: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', color: theme.palette.text.secondary }}>
+            <FaCalendarAlt style={{ marginRight: 8, color: theme.palette.grey[400] }} />
+            <Typography variant="body2">
+              {new Date(event.date).toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </Typography>
+          </Box>
 
-        {event.duration && (
-          <div className="flex items-center text-gray-600 mb-2">
-            <FaClock className="mr-2 text-gray-400" />
-            <span>{event.duration}</span>
-          </div>
-        )}
+          {event.duration && (
+            <Box sx={{ display: 'flex', alignItems: 'center', color: theme.palette.text.secondary }}>
+              <FaClock style={{ marginRight: 8, color: theme.palette.grey[400] }} />
+              <Typography variant="body2">{event.duration}</Typography>
+            </Box>
+          )}
 
-        <div className="flex items-center text-gray-600 mb-3">
-          <FaMapMarkerAlt className="mr-2 text-gray-400" />
-          <span>{event.location}</span>
-        </div>
+          <Box sx={{ display: 'flex', alignItems: 'center', color: theme.palette.text.secondary }}>
+            <FaMapMarkerAlt style={{ marginRight: 8, color: theme.palette.grey[400] }} />
+            <Typography variant="body2">{event.location}</Typography>
+          </Box>
+        </Stack>
 
-        <div className="flex flex-wrap gap-2 mb-4">
+        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
           {event.tags.map((tag, index) => (
-            <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-              {tag}
-            </span>
+            <Chip
+              key={index}
+              label={tag}
+              size="small"
+              sx={{
+                bgcolor: theme.palette.grey[50],
+                color: theme.palette.grey[700],
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                border: '1px solid',
+                borderColor: theme.palette.grey[200],
+                '&:hover': {
+                  bgcolor: theme.palette.grey[100],
+                }
+              }}
+            />
           ))}
-        </div>
+        </Stack>
 
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center text-gray-600">
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mt: 'auto',
+          pt: 2,
+          borderTop: 1,
+          borderColor: theme.palette.grey[100]
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', color: theme.palette.text.secondary }}>
             {event.type === "hackathon" ? (
-              <div className="flex items-center">
-                <FaUsers className="mr-1 text-gray-400" />
-                <span className="text-sm">{event.teamSize}</span>
-              </div>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <FaUsers style={{ marginRight: 4, color: theme.palette.grey[400] }} />
+                <Typography variant="body2">{event.teamSize}</Typography>
+              </Box>
             ) : (
-              <div className="flex items-center">
-                <FaLaptopCode className="mr-1 text-gray-400" />
-                <span className="text-sm">{event.difficulty}</span>
-              </div>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <FaLaptopCode style={{ marginRight: 4, color: theme.palette.grey[400] }} />
+                <Typography variant="body2">{event.difficulty}</Typography>
+              </Box>
             )}
-          </div>
+          </Box>
 
-          <button
-            onClick={() => onViewDetails(event.id)}
-            className="text-sm font-medium text-purple-600 hover:text-purple-800 transition duration-300"
+          <Button
+            variant="text"
+            color="primary"
+            endIcon="→"
+            sx={{ 
+              fontWeight: 500,
+              color: theme.palette.primary.main,
+              '&:hover': { 
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+              }
+            }}
           >
-            View Details →
-          </button>
-        </div>
-      </div>
-    </div>
+            View Details
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
   )
 }
 

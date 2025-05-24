@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
 * {
   margin: 0;
@@ -7,10 +7,140 @@
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  margin: 0;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb;
+  background-color: #f5f5f5;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Smooth transitions */
+.MuiButton-root,
+.MuiIconButton-root,
+.MuiCard-root,
+.MuiChip-root {
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Custom focus styles */
+*:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Remove default focus styles for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 600px) {
+  .MuiButton-root,
+  .MuiIconButton-root,
+  .MuiChip-root {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Utility classes */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Material UI overrides */
+.MuiDrawer-paper {
+  border-radius: 0 !important;
+}
+
+.MuiCard-root {
+  overflow: visible !important;
+}
+
+.MuiChip-root {
+  cursor: pointer;
+}
+
+/* Toast notifications */
+.Toastify__toast {
+  border-radius: 8px !important;
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.Toastify__toast--success {
+  background-color: #4caf50 !important;
+}
+
+.Toastify__toast--error {
+  background-color: #f44336 !important;
+}
+
+.Toastify__toast--info {
+  background-color: #2196f3 !important;
+}
+
+.Toastify__toast--warning {
+  background-color: #ff9800 !important;
 }
 
 .container {

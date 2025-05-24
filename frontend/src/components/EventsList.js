@@ -1,6 +1,17 @@
 "use client"
 
 import { useState, useCallback, useMemo } from "react"
+import {
+  Box,
+  Container,
+  Typography,
+  Grid,
+  Button,
+  Paper,
+  Alert,
+  AlertTitle,
+  useTheme,
+} from '@mui/material'
 import EventCard from "./EventCard"
 import FilterBar from "./FilterBar"
 import SearchContainer from "./SearchContainer"
@@ -16,6 +27,7 @@ const EventsList = ({ events, title, onViewDetails }) => {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
   const [isSearchActive, setIsSearchActive] = useState(false)
+  const theme = useTheme()
 
   // Handle filter changes from FilterBar
   const handleFilterChange = useCallback((filters) => {
@@ -96,66 +108,108 @@ const EventsList = ({ events, title, onViewDetails }) => {
   }
 
   return (
-    <section className="py-12 bg-gray-50">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">{title || "Upcoming Events"}</h2>
+    <Box sx={{ py: 6, bgcolor: 'grey.50' }}>
+      <Container maxWidth="lg">
+        <Typography variant="h4" component="h2" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
+          {title || "Upcoming Events"}
+        </Typography>
 
-        <div className="mb-6">
+        <Box sx={{ mb: 4 }}>
           <SearchContainer events={events} onSearchApply={handleSearchApply} />
-        </div>
+        </Box>
 
         {isSearchActive && (
-          <div className="mb-6 flex items-center bg-purple-50 p-3 rounded-lg">
-            <span className="text-purple-700 font-medium">
-              Showing results for "{searchQuery}" ({searchResults.length} events)
-            </span>
-            <button onClick={clearSearch} className="ml-auto text-sm text-purple-600 hover:text-purple-800 font-medium">
-              Clear Search
-            </button>
-          </div>
+          <Alert 
+            severity="info" 
+            sx={{ 
+              mb: 4,
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
+              '& .MuiAlert-icon': {
+                color: 'primary.main'
+              }
+            }}
+            action={
+              <Button 
+                color="primary" 
+                onClick={clearSearch}
+                sx={{ 
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: 'transparent' }
+                }}
+              >
+                Clear Search
+              </Button>
+            }
+          >
+            <AlertTitle>Search Results</AlertTitle>
+            Showing results for "{searchQuery}" ({searchResults.length} events)
+          </Alert>
         )}
 
         <FilterBar events={events} onFilterChange={handleFilterChange} />
 
         {filteredEvents.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-            <h3 className="text-xl font-medium text-gray-600 mb-2">No events found</h3>
-            <p className="text-gray-500 mb-4">
-              {isSearchActive ? `No events match your search "${searchQuery}"` : "No events match your current filters"}
-            </p>
-            <button
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 6, 
+              textAlign: 'center',
+              bgcolor: 'background.paper',
+              borderRadius: 2
+            }}
+          >
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+              No events found
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              {isSearchActive 
+                ? `No events match your search "${searchQuery}"` 
+                : "No events match your current filters"
+              }
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
               onClick={
                 isSearchActive
                   ? clearSearch
                   : () => handleFilterChange({ types: [], tags: [], status: [], sortBy: "date-asc" })
               }
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition duration-300"
             >
               {isSearchActive ? "Clear Search" : "Clear Filters"}
-            </button>
-          </div>
+            </Button>
+          </Paper>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Grid container spacing={3}>
               {filteredEvents.slice(0, displayCount).map((event) => (
-                <EventCard key={event.id} event={event} onViewDetails={onViewDetails} />
+                <Grid item xs={12} md={6} lg={4} key={event.id}>
+                  <EventCard event={event} onViewDetails={onViewDetails} />
+                </Grid>
               ))}
-            </div>
+            </Grid>
 
             {displayCount < filteredEvents.length && (
-              <div className="text-center mt-10">
-                <button
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="large"
                   onClick={loadMore}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition duration-300"
+                  sx={{ 
+                    px: 4,
+                    py: 1.5,
+                    borderRadius: 2
+                  }}
                 >
                   Load More
-                </button>
-              </div>
+                </Button>
+              </Box>
             )}
           </>
         )}
-      </div>
-    </section>
+      </Container>
+    </Box>
   )
 }
 
