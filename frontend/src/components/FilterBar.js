@@ -1,17 +1,46 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { FaFilter, FaSort, FaTimes, FaCheck } from "react-icons/fa"
+import {
+  Box,
+  Paper,
+  Button,
+  IconButton,
+  Typography,
+  Menu,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  Radio,
+  Chip,
+  Stack,
+  useTheme,
+  useMediaQuery,
+  Drawer,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Badge,
+} from '@mui/material'
+import FilterListIcon from '@mui/icons-material/FilterList'
+import SortIcon from '@mui/icons-material/Sort'
+import CloseIcon from '@mui/icons-material/Close'
+import CheckIcon from '@mui/icons-material/Check'
 
 const FilterBar = ({ events, onFilterChange }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [activeDropdown, setActiveDropdown] = useState(null)
+  const [anchorEl, setAnchorEl] = useState(null)
+  const [activeFilter, setActiveFilter] = useState(null)
   const [filters, setFilters] = useState({
     types: [],
     tags: [],
     status: [],
     sortBy: "date-asc",
   })
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   // Extract all unique tags from events
   const allTags = [...new Set(events.flatMap((event) => event.tags))].sort()
@@ -44,343 +73,354 @@ const FilterBar = ({ events, onFilterChange }) => {
       status: [],
       sortBy: "date-asc",
     })
+    setAnchorEl(null)
+    setIsOpen(false)
   }
 
-  // Toggle mobile filter menu
-  const toggleFilterMenu = () => {
-    setIsOpen(!isOpen)
+  const handleFilterClick = (event, filterType) => {
+    setAnchorEl(event.currentTarget)
+    setActiveFilter(filterType)
   }
 
-  // Toggle dropdown on click
-  const toggleDropdown = (dropdown) => {
-    setActiveDropdown(activeDropdown === dropdown ? null : dropdown)
+  const handleFilterClose = () => {
+    setAnchorEl(null)
+    setActiveFilter(null)
   }
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (activeDropdown && !event.target.closest('.dropdown-container')) {
-        setActiveDropdown(null)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [activeDropdown])
 
   // Update parent component when filters change
   useEffect(() => {
     onFilterChange(filters)
   }, [filters, onFilterChange])
 
-  return (
-    <div className="bg-white shadow-sm mb-6">
-      {/* Mobile Filter Button */}
-      <div className="md:hidden p-4">
-        <button
-          onClick={toggleFilterMenu}
-          className="w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center justify-center text-gray-700"
+  const getFilterCount = (filterType) => {
+    return filters[filterType].length
+  }
+
+  const renderFilterMenu = () => {
+    const menuItems = {
+      types: ["hackathon", "contest"].map((type) => (
+        <MenuItem key={type} onClick={(e) => e.stopPropagation()}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filters.types.includes(type)}
+                onChange={() => handleFilterChange("types", type)}
+                sx={{
+                  color: theme.palette.primary.main,
+                  '&.Mui-checked': {
+                    color: theme.palette.primary.main,
+                  },
+                }}
+              />
+            }
+            label={`${type.charAt(0).toUpperCase() + type.slice(1)}s`}
+            sx={{ width: '100%', m: 0 }}
+          />
+        </MenuItem>
+      )),
+      tags: allTags.map((tag) => (
+        <MenuItem key={tag} onClick={(e) => e.stopPropagation()}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filters.tags.includes(tag)}
+                onChange={() => handleFilterChange("tags", tag)}
+                sx={{
+                  color: theme.palette.primary.main,
+                  '&.Mui-checked': {
+                    color: theme.palette.primary.main,
+                  },
+                }}
+              />
+            }
+            label={tag}
+            sx={{ width: '100%', m: 0 }}
+          />
+        </MenuItem>
+      )),
+      status: ["upcoming", "today", "soon", "ended"].map((status) => (
+        <MenuItem key={status} onClick={(e) => e.stopPropagation()}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filters.status.includes(status)}
+                onChange={() => handleFilterChange("status", status)}
+                sx={{
+                  color: theme.palette.primary.main,
+                  '&.Mui-checked': {
+                    color: theme.palette.primary.main,
+                  },
+                }}
+              />
+            }
+            label={status.charAt(0).toUpperCase() + status.slice(1)}
+            sx={{ width: '100%', m: 0 }}
+          />
+        </MenuItem>
+      )),
+      sort: [
+        { value: "date-asc", label: "Date (Earliest First)" },
+        { value: "date-desc", label: "Date (Latest First)" },
+        { value: "name-asc", label: "Name (A-Z)" },
+      ].map((option) => (
+        <MenuItem key={option.value} onClick={(e) => e.stopPropagation()}>
+          <FormControlLabel
+            control={
+              <Radio
+                checked={filters.sortBy === option.value}
+                onChange={() => handleFilterChange("sortBy", option.value)}
+                sx={{
+                  color: theme.palette.primary.main,
+                  '&.Mui-checked': {
+                    color: theme.palette.primary.main,
+                  },
+                }}
+              />
+            }
+            label={option.label}
+            sx={{ width: '100%', m: 0 }}
+          />
+        </MenuItem>
+      )),
+    }
+
+    return (
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleFilterClose}
+        PaperProps={{
+          sx: { minWidth: 200 }
+        }}
+      >
+        {activeFilter && menuItems[activeFilter]}
+      </Menu>
+    )
+  }
+
+  const renderMobileFilters = () => (
+    <Drawer
+      anchor="right"
+      open={isOpen}
+      onClose={() => setIsOpen(false)}
+      PaperProps={{
+        sx: { width: 320, p: 2 }
+      }}
+    >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">Filters</Typography>
+        <IconButton onClick={() => setIsOpen(false)}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      <List>
+        <ListItem>
+          <ListItemText primary="Event Type" />
+        </ListItem>
+        <Box sx={{ pl: 2 }}>
+          {["hackathon", "contest"].map((type) => (
+            <FormControlLabel
+              key={type}
+              control={
+                <Checkbox
+                  checked={filters.types.includes(type)}
+                  onChange={() => handleFilterChange("types", type)}
+                />
+              }
+              label={`${type.charAt(0).toUpperCase() + type.slice(1)}s`}
+            />
+          ))}
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <ListItem>
+          <ListItemText primary="Tags" />
+        </ListItem>
+        <Box sx={{ pl: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {allTags.map((tag) => (
+            <Chip
+              key={tag}
+              label={tag}
+              onClick={() => handleFilterChange("tags", tag)}
+              color={filters.tags.includes(tag) ? "primary" : "default"}
+              variant={filters.tags.includes(tag) ? "filled" : "outlined"}
+              size="small"
+            />
+          ))}
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <ListItem>
+          <ListItemText primary="Status" />
+        </ListItem>
+        <Box sx={{ pl: 2 }}>
+          {["upcoming", "today", "soon", "ended"].map((status) => (
+            <FormControlLabel
+              key={status}
+              control={
+                <Checkbox
+                  checked={filters.status.includes(status)}
+                  onChange={() => handleFilterChange("status", status)}
+                />
+              }
+              label={status.charAt(0).toUpperCase() + status.slice(1)}
+            />
+          ))}
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <ListItem>
+          <ListItemText primary="Sort By" />
+        </ListItem>
+        <Box sx={{ pl: 2 }}>
+          {[
+            { value: "date-asc", label: "Date (Earliest First)" },
+            { value: "date-desc", label: "Date (Latest First)" },
+            { value: "name-asc", label: "Name (A-Z)" },
+          ].map((option) => (
+            <FormControlLabel
+              key={option.value}
+              control={
+                <Radio
+                  checked={filters.sortBy === option.value}
+                  onChange={() => handleFilterChange("sortBy", option.value)}
+                />
+              }
+              label={option.label}
+            />
+          ))}
+        </Box>
+      </List>
+
+      <Box sx={{ mt: 'auto', pt: 2 }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          color="primary"
+          onClick={clearFilters}
+          startIcon={<CloseIcon />}
         >
-          <FaFilter className="mr-2" />
-          Filters
-          <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
-            {filters.types.length + filters.tags.length + filters.status.length || 0}
-          </span>
-        </button>
-      </div>
+          Clear Filters
+        </Button>
+      </Box>
+    </Drawer>
+  )
 
-      {/* Mobile Filter Menu */}
-      {isOpen && (
-        <div className="md:hidden p-4 border-t border-gray-100">
-          {/* Mobile filter content */}
-          <div className="space-y-4">
-            {/* Event Type Filter */}
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">Event Type</h3>
-              <div className="space-y-2">
-                {["hackathon", "contest"].map((type) => (
-                  <label key={type} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={filters.types.includes(type)}
-                      onChange={() => handleFilterChange("types", type)}
-                    />
-                    <span
-                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                        filters.types.includes(type) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                      }`}
-                    >
-                      {filters.types.includes(type) && <FaCheck className="text-xs" />}
-                    </span>
-                    <span className="capitalize">{type}s</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Tags Filter */}
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">Tags</h3>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map((tag) => (
-                  <label key={tag} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={filters.tags.includes(tag)}
-                      onChange={() => handleFilterChange("tags", tag)}
-                    />
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        filters.tags.includes(tag)
-                          ? "bg-purple-100 text-purple-700 border border-purple-200"
-                          : "bg-gray-100 text-gray-600 border border-gray-200"
-                      }`}
-                    >
-                      {tag}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">Status</h3>
-              <div className="space-y-2">
-                {["upcoming", "today", "soon", "ended"].map((status) => (
-                  <label key={status} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={filters.status.includes(status)}
-                      onChange={() => handleFilterChange("status", status)}
-                    />
-                    <span
-                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                        filters.status.includes(status) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                      }`}
-                    >
-                      {filters.status.includes(status) && <FaCheck className="text-xs" />}
-                    </span>
-                    <span className="capitalize">{status}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Sort Options */}
-            <div>
-              <h3 className="font-medium text-gray-700 mb-2">Sort By</h3>
-              <div className="space-y-2">
-                {[
-                  { value: "date-asc", label: "Date (Earliest First)" },
-                  { value: "date-desc", label: "Date (Latest First)" },
-                  { value: "name-asc", label: "Name (A-Z)" },
-                ].map((option) => (
-                  <label key={option.value} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="sortBy"
-                      className="hidden"
-                      checked={filters.sortBy === option.value}
-                      onChange={() => handleFilterChange("sortBy", option.value)}
-                    />
-                    <span
-                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded-full ${
-                        filters.sortBy === option.value ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                      }`}
-                    >
-                      {filters.sortBy === option.value && <FaCheck className="text-xs" />}
-                    </span>
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Clear Filters Button */}
-            <button
-              onClick={clearFilters}
-              className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md flex items-center justify-center"
+  return (
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        mb: 3,
+        bgcolor: 'background.paper',
+        borderRadius: 2
+      }}
+    >
+      {isMobile ? (
+        <>
+          <Box sx={{ p: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setIsOpen(true)}
+              startIcon={
+                <Badge badgeContent={getFilterCount('types') + getFilterCount('tags') + getFilterCount('status')} color="primary">
+                  <FilterListIcon />
+                </Badge>
+              }
             >
-              <FaTimes className="mr-2" />
+              Filters
+            </Button>
+          </Box>
+          {renderMobileFilters()}
+        </>
+      ) : (
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ p: 2 }}
+          divider={<Divider orientation="vertical" flexItem />}
+        >
+          <Button
+            variant="outlined"
+            onClick={(e) => handleFilterClick(e, 'types')}
+            startIcon={<FilterListIcon />}
+            endIcon={
+              getFilterCount('types') > 0 && (
+                <Chip
+                  label={getFilterCount('types')}
+                  size="small"
+                  color="primary"
+                  sx={{ ml: 1 }}
+                />
+              )
+            }
+          >
+            Event Type
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={(e) => handleFilterClick(e, 'tags')}
+            startIcon={<FilterListIcon />}
+            endIcon={
+              getFilterCount('tags') > 0 && (
+                <Chip
+                  label={getFilterCount('tags')}
+                  size="small"
+                  color="primary"
+                  sx={{ ml: 1 }}
+                />
+              )
+            }
+          >
+            Tags
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={(e) => handleFilterClick(e, 'status')}
+            startIcon={<FilterListIcon />}
+            endIcon={
+              getFilterCount('status') > 0 && (
+                <Chip
+                  label={getFilterCount('status')}
+                  size="small"
+                  color="primary"
+                  sx={{ ml: 1 }}
+                />
+              )
+            }
+          >
+            Status
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={(e) => handleFilterClick(e, 'sort')}
+            startIcon={<SortIcon />}
+          >
+            Sort By
+          </Button>
+
+          {(getFilterCount('types') > 0 || getFilterCount('tags') > 0 || getFilterCount('status') > 0) && (
+            <Button
+              variant="text"
+              color="primary"
+              onClick={clearFilters}
+              startIcon={<CloseIcon />}
+            >
               Clear Filters
-            </button>
-          </div>
-        </div>
+            </Button>
+          )}
+        </Stack>
       )}
 
-      {/* Desktop Filter Bar */}
-      <div className="hidden md:flex flex-wrap items-center justify-between p-4">
-        {/* Left side filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Event Type Filter */}
-          <div className="relative dropdown-container">
-            <button 
-              onClick={() => toggleDropdown('types')}
-              className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
-            >
-              Event Type
-              <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
-                {filters.types.length || 0}
-              </span>
-            </button>
-            {activeDropdown === 'types' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
-                {["hackathon", "contest"].map((type) => (
-                  <label 
-                    key={type} 
-                    className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={filters.types.includes(type)}
-                      onChange={() => handleFilterChange("types", type)}
-                    />
-                    <span
-                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                        filters.types.includes(type) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                      }`}
-                    >
-                      {filters.types.includes(type) && <FaCheck className="text-xs" />}
-                    </span>
-                    <span className="capitalize">{type}s</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Tags Filter */}
-          <div className="relative dropdown-container">
-            <button 
-              onClick={() => toggleDropdown('tags')}
-              className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
-            >
-              Tags
-              <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
-                {filters.tags.length || 0}
-              </span>
-            </button>
-            {activeDropdown === 'tags' && (
-              <div className="absolute left-0 mt-2 w-64 bg-white rounded-md shadow-lg py-2 z-50 max-h-96 overflow-y-auto">
-                <div className="grid grid-cols-2 gap-2 p-2">
-                  {allTags.map((tag) => (
-                    <label 
-                      key={tag} 
-                      className="flex items-center px-2 py-1 hover:bg-gray-50 cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={filters.tags.includes(tag)}
-                        onChange={() => handleFilterChange("tags", tag)}
-                      />
-                      <span
-                        className={`w-4 h-4 mr-2 flex items-center justify-center border rounded ${
-                          filters.tags.includes(tag) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                        }`}
-                      >
-                        {filters.tags.includes(tag) && <FaCheck className="text-xs" />}
-                      </span>
-                      <span className="text-sm truncate">{tag}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Status Filter */}
-          <div className="relative dropdown-container">
-            <button 
-              onClick={() => toggleDropdown('status')}
-              className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
-            >
-              Status
-              <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
-                {filters.status.length || 0}
-              </span>
-            </button>
-            {activeDropdown === 'status' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
-                {["upcoming", "today", "soon", "ended"].map((status) => (
-                  <label 
-                    key={status} 
-                    className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={filters.status.includes(status)}
-                      onChange={() => handleFilterChange("status", status)}
-                    />
-                    <span
-                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                        filters.status.includes(status) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                      }`}
-                    >
-                      {filters.status.includes(status) && <FaCheck className="text-xs" />}
-                    </span>
-                    <span className="capitalize">{status}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right side sort */}
-        <div className="relative dropdown-container">
-          <button 
-            onClick={() => toggleDropdown('sort')}
-            className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
-          >
-            <FaSort className="mr-2" />
-            Sort By
-          </button>
-          {activeDropdown === 'sort' && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
-              {[
-                { value: "date-asc", label: "Date (Earliest First)" },
-                { value: "date-desc", label: "Date (Latest First)" },
-                { value: "name-asc", label: "Name (A-Z)" },
-              ].map((option) => (
-                <label 
-                  key={option.value} 
-                  className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="radio"
-                    name="sortBy"
-                    className="hidden"
-                    checked={filters.sortBy === option.value}
-                    onChange={() => handleFilterChange("sortBy", option.value)}
-                  />
-                  <span
-                    className={`w-5 h-5 mr-2 flex items-center justify-center border rounded-full ${
-                      filters.sortBy === option.value ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                    }`}
-                  >
-                    {filters.sortBy === option.value && <FaCheck className="text-xs" />}
-                  </span>
-                  <span>{option.label}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      {renderFilterMenu()}
+    </Paper>
   )
 }
 

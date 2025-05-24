@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ThemeProvider, CssBaseline, Container, Box, AppBar, Toolbar } from '@mui/material'
 import { AuthProvider } from "./context/AuthContext"
 import Navbar from "./components/Navbar"
 import Introduction from "./components/Introduction"
@@ -16,6 +17,7 @@ import { NotificationProvider } from './context/NotificationContext'
 import NotificationBell from './components/NotificationBell'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import theme from './theme'
 
 // EventDetail wrapper component to handle params
 const EventDetailWrapper = ({ events, onBack, onViewDetails }) => {
@@ -72,68 +74,66 @@ function App() {
 
   // Home page component
   const HomePage = () => (
-    <>
+    <Box>
       <Introduction />
       <EventsList 
         events={eventsData} 
         title="Explore Hackathons & Contests" 
         onViewDetails={viewEventDetails} 
       />
-    </>
+    </Box>
   )
 
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <Toaster position="top-right" />
-        <div className="min-h-screen bg-gray-100">
-          <nav className="bg-white shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between h-16">
-                <div className="flex">
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <NotificationProvider>
+          <Toaster position="top-right" />
+          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+            <AppBar position="static" color="default" elevation={1}>
+              <Toolbar>
+                <Box sx={{ flexGrow: 1 }}>
                   <Navbar onViewReminders={toggleRemindersModal} />
-                </div>
-                <div className="flex items-center">
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <NotificationBell />
-                  <div className="ml-4 flex items-center md:ml-6">
-                    {/* User menu */}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </nav>
+                </Box>
+              </Toolbar>
+            </AppBar>
 
-          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route 
-                path="/event/:eventId" 
-                element={
-                  <EventDetailWrapper
-                    events={eventsData}
-                    onBack={goBackToEvents}
-                    onViewDetails={viewEventDetails}
-                  />
-                } 
+            <Container component="main" maxWidth="lg" sx={{ py: 4, flexGrow: 1 }}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route 
+                  path="/event/:eventId" 
+                  element={
+                    <EventDetailWrapper
+                      events={eventsData}
+                      onBack={goBackToEvents}
+                      onViewDetails={viewEventDetails}
+                    />
+                  } 
+                />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+
+              {/* My Reminders Modal */}
+              <MyReminders 
+                isOpen={showReminders} 
+                onClose={toggleRemindersModal} 
+                onViewEvent={viewEventDetails} 
               />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
 
-            {/* My Reminders Modal */}
-            <MyReminders 
-              isOpen={showReminders} 
-              onClose={toggleRemindersModal} 
-              onViewEvent={viewEventDetails} 
-            />
-
-            {/* Connection Status Indicator */}
-            <ConnectionStatus />
-          </main>
-        </div>
-      </NotificationProvider>
-    </AuthProvider>
+              {/* Connection Status Indicator */}
+              <ConnectionStatus />
+            </Container>
+          </Box>
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 
