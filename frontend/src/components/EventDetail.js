@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import {
   FaCalendarAlt,
   FaClock,
@@ -17,23 +17,41 @@ import {
   FaShare,
   FaBell,
   FaBellSlash,
+  FaSpinner,
+  FaCheckCircle,
+  FaTimesCircle,
 } from "react-icons/fa"
-import ReminderModal from "./ReminderModal"
-import { hasReminder } from "../services/ReminderService"
+import { hasReminder, removeReminder } from "../services/ReminderService"
+import AuthContext from "../context/AuthContext"
+import axios from 'axios'
+import { useNotifications } from '../context/NotificationContext'
+import AuthModal from "./auth/AuthModal"
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'react-hot-toast'
 
 const EventDetail = ({ event, events, onBack, onViewDetails }) => {
   const [isSaved, setIsSaved] = useState(event?.isSaved || false)
   const [isReminderSet, setIsReminderSet] = useState(false)
   const [showShareOptions, setShowShareOptions] = useState(false)
-  const [showReminderModal, setShowReminderModal] = useState(false)
+  const [isSubmittingReminder, setIsSubmittingReminder] = useState(false)
+  const [reminderStatus, setReminderStatus] = useState(null) // 'setting', 'set', 'removing', 'removed', 'error'
+  const [reminderMessage, setReminderMessage] = useState('')
+  const { isAuthenticated } = useContext(AuthContext)
+  const { joinUserRoom } = useNotifications()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (event) {
       // Check if reminder exists for this event
-      const hasRemind = hasReminder(event.id)
-      setIsReminderSet(hasRemind)
+      const checkReminder = async () => {
+        const hasRemind = isAuthenticated 
+          ? await hasReminder(event.id)
+          : JSON.parse(localStorage.getItem('reminders') || '[]').some(r => r.eventId === event.id)
+        setIsReminderSet(hasRemind)
+      }
+      checkReminder()
     }
-  }, [event])
+  }, [event, isAuthenticated])
 
   if (!event) {
     return (
@@ -74,16 +92,6 @@ const EventDetail = ({ event, events, onBack, onViewDetails }) => {
     // Here you would also update this in your backend/database
   }
 
-  // Toggle reminder modal
-  const toggleReminderModal = () => {
-    setShowReminderModal(!showReminderModal)
-  }
-
-  // Handle reminder set/removed
-  const handleReminderChange = (isSet) => {
-    setIsReminderSet(isSet)
-  }
-
   // Toggle share options
   const toggleShareOptions = () => {
     setShowShareOptions(!showShareOptions)
@@ -113,6 +121,102 @@ const EventDetail = ({ event, events, onBack, onViewDetails }) => {
     }
 
     setShowShareOptions(false)
+  }
+
+  // Set or remove reminder
+  const handleSetOrRemoveReminder = async () => {
+    setIsSubmittingReminder(true)
+    setReminderMessage('')
+    setReminderStatus(null)
+
+    // Check for notification permission before setting reminder
+    if (!isReminderSet && "Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission().then((permission) => {
+            if (permission !== "granted") {
+                setReminderMessage('Notifications blocked. Please enable in browser settings.')
+                setReminderStatus('error')
+            }
+            setIsSubmittingReminder(false);
+        });
+        return;
+    }
+
+    try {
+      if (isReminderSet) {
+        // Remove reminder
+        setReminderStatus('removing')
+        const success = isAuthenticated ? await removeReminder(event.id) : true;
+        if (!isAuthenticated) {
+            const reminders = JSON.parse(localStorage.getItem('reminders') || '[]')
+            const updatedReminders = reminders.filter(r => r.eventId !== event.id)
+            localStorage.setItem('reminders', JSON.stringify(updatedReminders))
+        }
+
+        if (success) {
+            setIsReminderSet(false)
+            setReminderMessage('Reminder removed!')
+            setReminderStatus('removed')
+        } else if (isAuthenticated) {
+            setReminderMessage('Failed to remove reminder. Please try again.')
+            setReminderStatus('error')
+        }
+      } else {
+        // Set reminder
+        setReminderStatus('setting')
+        if (isAuthenticated) {
+          const token = localStorage.getItem('token')
+          const response = await axios.post(
+            'http://localhost:5000/api/users/reminders',
+            {
+              eventId: event.id,
+              eventName: event.name,
+              eventDate: event.date,
+              reminderTime: new Date(event.date).toISOString(),
+            },
+            {
+              headers: {
+                'x-auth-token': token,
+              },
+            }
+          )
+          
+          // Join user's notification room
+          joinUserRoom(response.data.userId)
+          
+          // Show immediate notification
+          toast.success(`Reminder set for ${event.name}!`, {
+            duration: 5000,
+            position: 'top-right',
+          })
+        } else {
+          // For non-authenticated users, store reminder in localStorage
+          const reminders = JSON.parse(localStorage.getItem('reminders') || '[]')
+          reminders.push({
+            eventId: event.id,
+            eventName: event.name,
+            eventDate: event.date,
+            reminderTime: new Date(event.date).toISOString(),
+          })
+          localStorage.setItem('reminders', JSON.stringify(reminders))
+          
+          // Show immediate notification for non-authenticated users
+          toast.success(`Reminder set for ${event.name}!`, {
+            duration: 5000,
+            position: 'top-right',
+          })
+        }
+
+        setIsReminderSet(true)
+        setReminderMessage('Reminder set!')
+        setReminderStatus('set')
+      }
+    } catch (err) {
+      console.error('Reminder action failed:', err)
+      setReminderMessage('Failed to update reminder. Please try again.')
+      setReminderStatus('error')
+    } finally {
+      setIsSubmittingReminder(false)
+    }
   }
 
   // Find similar events (same type or shared tags)
@@ -169,15 +273,32 @@ const EventDetail = ({ event, events, onBack, onViewDetails }) => {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={toggleReminderModal}
+                onClick={handleSetOrRemoveReminder}
+                disabled={isSubmittingReminder}
                 className={`p-2 rounded-full ${
                   isReminderSet ? "bg-yellow-100 text-yellow-600" : "bg-gray-100 text-gray-600"
                 } hover:bg-gray-200`}
                 aria-label={isReminderSet ? "Manage reminder" : "Set reminder"}
                 title={isReminderSet ? "Manage reminder" : "Set reminder"}
               >
-                {isReminderSet ? <FaBell /> : <FaBellSlash />}
+                {isSubmittingReminder ? <FaSpinner className="animate-spin" /> : (isReminderSet ? <FaBell /> : <FaBellSlash />)}
               </button>
+              {reminderStatus && (
+                  <span className={`text-sm font-medium ${reminderStatus === 'error' ? 'text-red-600' : 'text-green-600'}`}>
+                      {reminderMessage}
+                  </span>
+              )}
+              
+              {/* Button to navigate to Manage Reminders page */}
+              {isReminderSet && (
+                  <button
+                      onClick={() => navigate('/reminders')}
+                      className="text-sm text-purple-600 hover:text-purple-800 font-medium ml-2"
+                  >
+                      Manage Reminders
+                  </button>
+              )}
+              
               <button
                 onClick={toggleSave}
                 className={`p-2 rounded-full ${
@@ -384,12 +505,6 @@ const EventDetail = ({ event, events, onBack, onViewDetails }) => {
                       <h3 className="text-lg font-semibold text-gray-800">Reminder Set</h3>
                     </div>
                     <p className="text-gray-700 text-sm mb-3">You'll be notified before this event starts.</p>
-                    <button
-                      onClick={toggleReminderModal}
-                      className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
-                    >
-                      Manage Reminder
-                    </button>
                   </div>
                 )}
 
@@ -433,14 +548,6 @@ const EventDetail = ({ event, events, onBack, onViewDetails }) => {
           </div>
         </div>
       </div>
-
-      {/* Reminder Modal */}
-      <ReminderModal
-        event={event}
-        isOpen={showReminderModal}
-        onClose={() => setShowReminderModal(false)}
-        onReminderSet={handleReminderChange}
-      />
     </div>
   )
 }
