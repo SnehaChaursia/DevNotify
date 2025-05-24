@@ -4,8 +4,9 @@ import { useState, useContext } from "react"
 import { FaEnvelope, FaLock, FaExclamationCircle, FaExclamationTriangle } from "react-icons/fa"
 import { loginUser, getCurrentUser } from "../../services/api"
 import AuthContext from "../../context/AuthContext"
+import { useNavigate } from "react-router-dom"
 
-const LoginForm = ({ onToggleForm }) => {
+const LoginForm = ({ onToggleForm, onSuccess }) => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -14,6 +15,7 @@ const LoginForm = ({ onToggleForm }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
   const { login } = useContext(AuthContext)
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({
@@ -56,30 +58,46 @@ const LoginForm = ({ onToggleForm }) => {
 
     setIsSubmitting(true)
     setConnectionError(false)
+    setErrors({})
 
     try {
       // Login user
-      const { token } = await loginUser(formData)
-
-      // Get user data
-      const userData = await getCurrentUser()
-
-      // Update auth context
-      login(token, userData)
+      const response = await loginUser(formData)
+      
+      if (response && response.token) {
+        // Get user data
+        const userData = await getCurrentUser()
+        // Update auth context
+        login(response.token, userData)
+        // Navigate to homepage or intended destination
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          navigate('/')
+        }
+      } else {
+        setErrors({ general: "Login failed. Please try again." })
+      }
     } catch (err) {
       console.error("Login error:", err)
 
-      // Check if it's a connection error
       if (err.message && (err.message.includes("connection") || err.message.includes("Network Error"))) {
         setConnectionError(true)
-      } else if (err.errors) {
+      } else if (err.errors && Array.isArray(err.errors)) {
         const formErrors = {}
         err.errors.forEach((error) => {
-          formErrors[error.param] = error.msg
+          // Check for invalid credentials error
+          if (error.msg === "Invalid credentials") {
+            formErrors.password = "Incorrect password. Please try again."
+          } else {
+            formErrors[error.param] = error.msg
+          }
         })
         setErrors(formErrors)
+      } else if (err.msg === "Invalid credentials") {
+        setErrors({ password: "Incorrect password. Please try again." })
       } else {
-        setErrors({ general: err.message || "Login failed. Please try again." })
+        setErrors({ general: err.msg || "Login failed. Please try again." })
       }
     } finally {
       setIsSubmitting(false)

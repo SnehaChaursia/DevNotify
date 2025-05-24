@@ -40,22 +40,43 @@ export const registerUser = async (userData) => {
     }
     return response.data
   } catch (error) {
+    // If the error has a response from the server, throw that
     if (error.response && error.response.data) {
       throw error.response.data
     }
-    throw { msg: error.message || 'Registration failed' }
+    // If it's a network error or other error, throw a formatted error
+    throw {
+      errors: [{
+        msg: error.message || 'Registration failed',
+        param: 'general'
+      }]
+    }
   }
 }
 
 export const loginUser = async (credentials) => {
   try {
     const response = await api.post("/users/login", credentials)
+    if (!response.data) {
+      throw new Error('Invalid response from server')
+    }
+    // Store token in localStorage
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token)
+    }
     return response.data
   } catch (error) {
-    if (error.response) {
+    // If the error has a response from the server, throw that
+    if (error.response && error.response.data) {
       throw error.response.data
     }
-    throw error
+    // If it's a network error or other error, throw a formatted error
+    throw {
+      errors: [{
+        msg: error.message || 'Login failed',
+        param: 'general'
+      }]
+    }
   }
 }
 

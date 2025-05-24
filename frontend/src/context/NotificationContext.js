@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+import api from '../services/api';
 import AuthContext from './AuthContext';
 
 const NotificationContext = createContext();
@@ -57,12 +57,7 @@ export const NotificationProvider = ({ children }) => {
 
   const fetchNotifications = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/users/notifications', {
-        headers: {
-          'x-auth-token': token
-        }
-      });
+      const response = await api.get('/users/notifications');
       setNotifications(response.data);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -71,12 +66,7 @@ export const NotificationProvider = ({ children }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/users/notifications/${notificationId}/read`, {}, {
-        headers: {
-          'x-auth-token': token
-        }
-      });
+      await api.put(`/users/notifications/${notificationId}/read`);
       setNotifications(prev =>
         prev.map(notification =>
           notification._id === notificationId

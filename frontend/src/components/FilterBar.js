@@ -5,6 +5,7 @@ import { FaFilter, FaSort, FaTimes, FaCheck } from "react-icons/fa"
 
 const FilterBar = ({ events, onFilterChange }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [activeDropdown, setActiveDropdown] = useState(null)
   const [filters, setFilters] = useState({
     types: [],
     tags: [],
@@ -50,355 +51,333 @@ const FilterBar = ({ events, onFilterChange }) => {
     setIsOpen(!isOpen)
   }
 
+  // Toggle dropdown on click
+  const toggleDropdown = (dropdown) => {
+    setActiveDropdown(activeDropdown === dropdown ? null : dropdown)
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeDropdown && !event.target.closest('.dropdown-container')) {
+        setActiveDropdown(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [activeDropdown])
+
   // Update parent component when filters change
   useEffect(() => {
     onFilterChange(filters)
   }, [filters, onFilterChange])
 
   return (
-    <div className="filter-bar bg-white shadow-sm rounded-lg mb-6">
+    <div className="bg-white shadow-sm mb-6">
       {/* Mobile Filter Button */}
-      <div className="md:hidden p-4 flex justify-between items-center">
+      <div className="md:hidden p-4">
         <button
           onClick={toggleFilterMenu}
-          className="flex items-center text-gray-700 font-medium"
-          aria-expanded={isOpen}
+          className="w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center justify-center text-gray-700"
         >
           <FaFilter className="mr-2" />
-          Filters{" "}
-          {Object.values(filters).flat().length > 0 && (
-            <span className="ml-1">({Object.values(filters).flat().length})</span>
-          )}
+          Filters
+          <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
+            {filters.types.length + filters.tags.length + filters.status.length || 0}
+          </span>
         </button>
-        {Object.values(filters).flat().length > 0 && (
-          <button onClick={clearFilters} className="text-sm text-purple-600">
-            Clear All
-          </button>
-        )}
       </div>
 
-      {/* Filter Content - Mobile (Collapsible) */}
-      <div className={`md:hidden ${isOpen ? "block" : "hidden"} border-t border-gray-100 p-4`}>
-        <div className="space-y-4">
-          {/* Event Type Filter */}
-          <div>
-            <h3 className="font-medium text-gray-800 mb-2">Event Type</h3>
-            <div className="space-y-2">
-              {["hackathon", "contest"].map((type) => (
-                <label key={type} className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={filters.types.includes(type)}
-                    onChange={() => handleFilterChange("types", type)}
-                  />
-                  <span
-                    className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                      filters.types.includes(type) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                    }`}
-                  >
-                    {filters.types.includes(type) && <FaCheck className="text-xs" />}
-                  </span>
-                  <span className="capitalize">{type}s</span>
-                </label>
-              ))}
+      {/* Mobile Filter Menu */}
+      {isOpen && (
+        <div className="md:hidden p-4 border-t border-gray-100">
+          {/* Mobile filter content */}
+          <div className="space-y-4">
+            {/* Event Type Filter */}
+            <div>
+              <h3 className="font-medium text-gray-700 mb-2">Event Type</h3>
+              <div className="space-y-2">
+                {["hackathon", "contest"].map((type) => (
+                  <label key={type} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={filters.types.includes(type)}
+                      onChange={() => handleFilterChange("types", type)}
+                    />
+                    <span
+                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
+                        filters.types.includes(type) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
+                      }`}
+                    >
+                      {filters.types.includes(type) && <FaCheck className="text-xs" />}
+                    </span>
+                    <span className="capitalize">{type}s</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Status Filter */}
-          <div>
-            <h3 className="font-medium text-gray-800 mb-2">Status</h3>
-            <div className="space-y-2">
-              {["upcoming", "soon", "today", "ended"].map((status) => (
-                <label key={status} className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={filters.status.includes(status)}
-                    onChange={() => handleFilterChange("status", status)}
-                  />
-                  <span
-                    className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                      filters.status.includes(status) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                    }`}
-                  >
-                    {filters.status.includes(status) && <FaCheck className="text-xs" />}
-                  </span>
-                  <span className="capitalize">{status}</span>
-                </label>
-              ))}
+            {/* Tags Filter */}
+            <div>
+              <h3 className="font-medium text-gray-700 mb-2">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {allTags.map((tag) => (
+                  <label key={tag} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={filters.tags.includes(tag)}
+                      onChange={() => handleFilterChange("tags", tag)}
+                    />
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        filters.tags.includes(tag)
+                          ? "bg-purple-100 text-purple-700 border border-purple-200"
+                          : "bg-gray-100 text-gray-600 border border-gray-200"
+                      }`}
+                    >
+                      {tag}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Tags Filter */}
-          <div>
-            <h3 className="font-medium text-gray-800 mb-2">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {allTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => handleFilterChange("tags", tag)}
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    filters.tags.includes(tag)
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
+            {/* Status Filter */}
+            <div>
+              <h3 className="font-medium text-gray-700 mb-2">Status</h3>
+              <div className="space-y-2">
+                {["upcoming", "today", "soon", "ended"].map((status) => (
+                  <label key={status} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={filters.status.includes(status)}
+                      onChange={() => handleFilterChange("status", status)}
+                    />
+                    <span
+                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
+                        filters.status.includes(status) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
+                      }`}
+                    >
+                      {filters.status.includes(status) && <FaCheck className="text-xs" />}
+                    </span>
+                    <span className="capitalize">{status}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Sort Options */}
-          <div>
-            <h3 className="font-medium text-gray-800 mb-2">Sort By</h3>
-            <div className="space-y-2">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  className="hidden"
-                  checked={filters.sortBy === "date-asc"}
-                  onChange={() => handleFilterChange("sortBy", "date-asc")}
-                />
-                <span
-                  className={`w-4 h-4 mr-2 rounded-full border ${
-                    filters.sortBy === "date-asc" ? "border-4 border-purple-600" : "border-gray-300"
-                  }`}
-                ></span>
-                <span>Date (Soonest First)</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  className="hidden"
-                  checked={filters.sortBy === "date-desc"}
-                  onChange={() => handleFilterChange("sortBy", "date-desc")}
-                />
-                <span
-                  className={`w-4 h-4 mr-2 rounded-full border ${
-                    filters.sortBy === "date-desc" ? "border-4 border-purple-600" : "border-gray-300"
-                  }`}
-                ></span>
-                <span>Date (Latest First)</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  className="hidden"
-                  checked={filters.sortBy === "name-asc"}
-                  onChange={() => handleFilterChange("sortBy", "name-asc")}
-                />
-                <span
-                  className={`w-4 h-4 mr-2 rounded-full border ${
-                    filters.sortBy === "name-asc" ? "border-4 border-purple-600" : "border-gray-300"
-                  }`}
-                ></span>
-                <span>Name (A-Z)</span>
-              </label>
+            {/* Sort Options */}
+            <div>
+              <h3 className="font-medium text-gray-700 mb-2">Sort By</h3>
+              <div className="space-y-2">
+                {[
+                  { value: "date-asc", label: "Date (Earliest First)" },
+                  { value: "date-desc", label: "Date (Latest First)" },
+                  { value: "name-asc", label: "Name (A-Z)" },
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center">
+                    <input
+                      type="radio"
+                      name="sortBy"
+                      className="hidden"
+                      checked={filters.sortBy === option.value}
+                      onChange={() => handleFilterChange("sortBy", option.value)}
+                    />
+                    <span
+                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded-full ${
+                        filters.sortBy === option.value ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
+                      }`}
+                    >
+                      {filters.sortBy === option.value && <FaCheck className="text-xs" />}
+                    </span>
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={clearFilters}
+              className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md flex items-center justify-center"
+            >
+              <FaTimes className="mr-2" />
+              Clear Filters
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Desktop Filter Bar */}
       <div className="hidden md:flex flex-wrap items-center justify-between p-4">
         {/* Left side filters */}
         <div className="flex flex-wrap items-center gap-4">
           {/* Event Type Filter */}
-          <div className="relative group">
-            <button className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700">
+          <div className="relative dropdown-container">
+            <button 
+              onClick={() => toggleDropdown('types')}
+              className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
+            >
               Event Type
               <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
                 {filters.types.length || 0}
               </span>
             </button>
-            <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50 hidden group-hover:block">
-              {["hackathon", "contest"].map((type) => (
-                <label key={type} className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={filters.types.includes(type)}
-                    onChange={() => handleFilterChange("types", type)}
-                  />
-                  <span
-                    className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                      filters.types.includes(type) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                    }`}
+            {activeDropdown === 'types' && (
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
+                {["hackathon", "contest"].map((type) => (
+                  <label 
+                    key={type} 
+                    className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {filters.types.includes(type) && <FaCheck className="text-xs" />}
-                  </span>
-                  <span className="capitalize">{type}s</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div className="relative group">
-            <button className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700">
-              Status
-              <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
-                {filters.status.length || 0}
-              </span>
-            </button>
-            <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50 hidden group-hover:block">
-              {["upcoming", "soon", "today", "ended"].map((status) => (
-                <label key={status} className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={filters.status.includes(status)}
-                    onChange={() => handleFilterChange("status", status)}
-                  />
-                  <span
-                    className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
-                      filters.status.includes(status) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                    }`}
-                  >
-                    {filters.status.includes(status) && <FaCheck className="text-xs" />}
-                  </span>
-                  <span className="capitalize">{status}</span>
-                </label>
-              ))}
-            </div>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={filters.types.includes(type)}
+                      onChange={() => handleFilterChange("types", type)}
+                    />
+                    <span
+                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
+                        filters.types.includes(type) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
+                      }`}
+                    >
+                      {filters.types.includes(type) && <FaCheck className="text-xs" />}
+                    </span>
+                    <span className="capitalize">{type}s</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Tags Filter */}
-          <div className="relative group">
-            <button className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700">
+          <div className="relative dropdown-container">
+            <button 
+              onClick={() => toggleDropdown('tags')}
+              className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
+            >
               Tags
               <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
                 {filters.tags.length || 0}
               </span>
             </button>
-            <div className="absolute left-0 mt-2 w-64 bg-white rounded-md shadow-lg p-4 z-50 hidden group-hover:block">
-              <div className="flex flex-wrap gap-2">
-                {allTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => handleFilterChange("tags", tag)}
-                    className={`px-3 py-1 rounded-full text-sm ${
-                      filters.tags.includes(tag)
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
+            {activeDropdown === 'tags' && (
+              <div className="absolute left-0 mt-2 w-64 bg-white rounded-md shadow-lg py-2 z-50 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2 p-2">
+                  {allTags.map((tag) => (
+                    <label 
+                      key={tag} 
+                      className="flex items-center px-2 py-1 hover:bg-gray-50 cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={filters.tags.includes(tag)}
+                        onChange={() => handleFilterChange("tags", tag)}
+                      />
+                      <span
+                        className={`w-4 h-4 mr-2 flex items-center justify-center border rounded ${
+                          filters.tags.includes(tag) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
+                        }`}
+                      >
+                        {filters.tags.includes(tag) && <FaCheck className="text-xs" />}
+                      </span>
+                      <span className="text-sm truncate">{tag}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Status Filter */}
+          <div className="relative dropdown-container">
+            <button 
+              onClick={() => toggleDropdown('status')}
+              className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
+            >
+              Status
+              <span className="ml-2 text-xs bg-gray-200 text-gray-700 w-5 h-5 rounded-full flex items-center justify-center">
+                {filters.status.length || 0}
+              </span>
+            </button>
+            {activeDropdown === 'status' && (
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
+                {["upcoming", "today", "soon", "ended"].map((status) => (
+                  <label 
+                    key={status} 
+                    className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {tag}
-                  </button>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={filters.status.includes(status)}
+                      onChange={() => handleFilterChange("status", status)}
+                    />
+                    <span
+                      className={`w-5 h-5 mr-2 flex items-center justify-center border rounded ${
+                        filters.status.includes(status) ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
+                      }`}
+                    >
+                      {filters.status.includes(status) && <FaCheck className="text-xs" />}
+                    </span>
+                    <span className="capitalize">{status}</span>
+                  </label>
                 ))}
               </div>
-            </div>
+            )}
           </div>
-
-          {/* Active Filters */}
-          {(filters.types.length > 0 || filters.tags.length > 0 || filters.status.length > 0) && (
-            <div className="flex flex-wrap items-center gap-2">
-              {filters.types.map((type) => (
-                <div
-                  key={type}
-                  className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm flex items-center"
-                >
-                  <span className="capitalize">{type}s</span>
-                  <button
-                    onClick={() => handleFilterChange("types", type)}
-                    className="ml-1 text-purple-700 hover:text-purple-900"
-                    aria-label={`Remove ${type} filter`}
-                  >
-                    <FaTimes size={12} />
-                  </button>
-                </div>
-              ))}
-              {filters.status.map((status) => (
-                <div
-                  key={status}
-                  className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm flex items-center"
-                >
-                  <span className="capitalize">{status}</span>
-                  <button
-                    onClick={() => handleFilterChange("status", status)}
-                    className="ml-1 text-purple-700 hover:text-purple-900"
-                    aria-label={`Remove ${status} filter`}
-                  >
-                    <FaTimes size={12} />
-                  </button>
-                </div>
-              ))}
-              {filters.tags.map((tag) => (
-                <div
-                  key={tag}
-                  className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm flex items-center"
-                >
-                  {tag}
-                  <button
-                    onClick={() => handleFilterChange("tags", tag)}
-                    className="ml-1 text-purple-700 hover:text-purple-900"
-                    aria-label={`Remove ${tag} filter`}
-                  >
-                    <FaTimes size={12} />
-                  </button>
-                </div>
-              ))}
-              {(filters.types.length > 0 || filters.tags.length > 0 || filters.status.length > 0) && (
-                <button onClick={clearFilters} className="text-sm text-purple-600 hover:text-purple-800">
-                  Clear All
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Right side - Sort options */}
-        <div className="relative group">
-          <button className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700">
+        {/* Right side sort */}
+        <div className="relative dropdown-container">
+          <button 
+            onClick={() => toggleDropdown('sort')}
+            className="px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center text-gray-700"
+          >
             <FaSort className="mr-2" />
-            Sort
+            Sort By
           </button>
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50 hidden group-hover:block">
-            <label className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
-              <input
-                type="radio"
-                className="hidden"
-                checked={filters.sortBy === "date-asc"}
-                onChange={() => handleFilterChange("sortBy", "date-asc")}
-              />
-              <span
-                className={`w-4 h-4 mr-2 rounded-full border ${
-                  filters.sortBy === "date-asc" ? "border-4 border-purple-600" : "border-gray-300"
-                }`}
-              ></span>
-              <span>Date (Soonest First)</span>
-            </label>
-            <label className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
-              <input
-                type="radio"
-                className="hidden"
-                checked={filters.sortBy === "date-desc"}
-                onChange={() => handleFilterChange("sortBy", "date-desc")}
-              />
-              <span
-                className={`w-4 h-4 mr-2 rounded-full border ${
-                  filters.sortBy === "date-desc" ? "border-4 border-purple-600" : "border-gray-300"
-                }`}
-              ></span>
-              <span>Date (Latest First)</span>
-            </label>
-            <label className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
-              <input
-                type="radio"
-                className="hidden"
-                checked={filters.sortBy === "name-asc"}
-                onChange={() => handleFilterChange("sortBy", "name-asc")}
-              />
-              <span
-                className={`w-4 h-4 mr-2 rounded-full border ${
-                  filters.sortBy === "name-asc" ? "border-4 border-purple-600" : "border-gray-300"
-                }`}
-              ></span>
-              <span>Name (A-Z)</span>
-            </label>
-          </div>
+          {activeDropdown === 'sort' && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
+              {[
+                { value: "date-asc", label: "Date (Earliest First)" },
+                { value: "date-desc", label: "Date (Latest First)" },
+                { value: "name-asc", label: "Name (A-Z)" },
+              ].map((option) => (
+                <label 
+                  key={option.value} 
+                  className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="radio"
+                    name="sortBy"
+                    className="hidden"
+                    checked={filters.sortBy === option.value}
+                    onChange={() => handleFilterChange("sortBy", option.value)}
+                  />
+                  <span
+                    className={`w-5 h-5 mr-2 flex items-center justify-center border rounded-full ${
+                      filters.sortBy === option.value ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
+                    }`}
+                  >
+                    {filters.sortBy === option.value && <FaCheck className="text-xs" />}
+                  </span>
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

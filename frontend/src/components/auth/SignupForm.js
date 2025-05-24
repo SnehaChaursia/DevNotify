@@ -4,6 +4,7 @@ import { useState, useContext } from "react"
 import { FaUser, FaEnvelope, FaLock, FaExclamationCircle, FaExclamationTriangle } from "react-icons/fa"
 import { registerUser, getCurrentUser } from "../../services/api"
 import AuthContext from "../../context/AuthContext"
+import { useNavigate } from "react-router-dom"
 
 const SignupForm = ({ onToggleForm }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,7 @@ const SignupForm = ({ onToggleForm }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
   const { login } = useContext(AuthContext)
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({
@@ -83,22 +85,27 @@ const SignupForm = ({ onToggleForm }) => {
         const userData = await getCurrentUser()
         // Update auth context
         login(response.token, userData)
+        // Navigate to homepage
+        navigate('/')
       } else {
         setErrors({ general: "Registration failed. Please try again." })
       }
     } catch (err) {
-      console.error("Signup error:", err)
+      console.error("Signup error details:", err)
 
       if (err.message && (err.message.includes("connection") || err.message.includes("Network Error"))) {
         setConnectionError(true)
       } else if (err.errors && Array.isArray(err.errors)) {
+        // Handle validation errors from backend
         const formErrors = {}
         err.errors.forEach((error) => {
-          formErrors[error.param || 'general'] = error.msg
+          // Map backend field names to form field names
+          const fieldName = error.param === 'name' ? 'name' :
+                          error.param === 'email' ? 'email' :
+                          error.param === 'password' ? 'password' : 'general'
+          formErrors[fieldName] = error.msg
         })
         setErrors(formErrors)
-      } else if (err.msg) {
-        setErrors({ general: err.msg })
       } else {
         setErrors({ general: "Registration failed. Please try again." })
       }

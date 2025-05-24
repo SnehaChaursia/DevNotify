@@ -59,7 +59,7 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-16">
             <a href="/" className="text-gray-700 hover:text-purple-700 transition duration-300">
               Home
             </a>
