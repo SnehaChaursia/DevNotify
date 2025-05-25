@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import LoginForm from '../components/auth/LoginForm';
 import SignupForm from '../components/auth/SignupForm';
@@ -10,6 +10,14 @@ const AuthPage = () => {
 
   // Get the path the user was trying to access before being redirected to auth
   const from = location.state?.from?.pathname || '/';
+
+  // Check if we should show registration form by default
+  useEffect(() => {
+    const showRegister = location.state?.showRegister;
+    if (showRegister) {
+      setIsLoginView(false);
+    }
+  }, [location]);
 
   const handleAuthSuccess = () => {
     // Redirect the user back to the page they were trying to access

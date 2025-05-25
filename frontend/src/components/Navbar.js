@@ -33,6 +33,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications'
 import AuthContext from "../context/AuthContext"
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Link } from 'react-router-dom'
+import { useNotifications } from '../context/NotificationContext';
 
 const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
   const { isAuthenticated, logout } = useContext(AuthContext);
@@ -41,9 +42,15 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
   const [profileAnchor, setProfileAnchor] = useState(null);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
+  
+  const { notifications, fetchNotifications, markAsRead } = useNotifications();
 
   const handleNotificationClick = (event) => {
     setNotificationAnchor(event.currentTarget);
+    // Fetch notifications when the bell is clicked if not already loaded
+    if (notifications.length === 0) {
+      fetchNotifications();
+    }
   };
 
   const handleNotificationClose = () => {
@@ -76,27 +83,6 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
     { text: 'Events', path: '/events' },
     { text: 'About', path: '/about' },
     { text: 'Contact', path: '/contact' }
-  ];
-
-  const notifications = [
-    {
-      icon: <EventIcon />,
-      title: 'New Hackathon',
-      message: 'CodeFest 2024 registration is now open!',
-      time: '2 hours ago'
-    },
-    {
-      icon: <CodeIcon />,
-      title: 'LeetCode Contest',
-      message: 'Weekly Contest 387 starts in 1 hour',
-      time: '3 hours ago'
-    },
-    {
-      icon: <NotificationsIcon />,
-      title: 'Reminder',
-      message: 'Your saved hackathon "AI Challenge" starts tomorrow',
-      time: '5 hours ago'
-    }
   ];
 
   const Logo = () => (
@@ -187,9 +173,9 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
   )
 
   const userMenuItems = [
-    { text: 'Profile', icon: <PersonIcon />, onClick: handleProfileClick },
+    { text: 'Profile', icon: <PersonIcon />, path: '/profile' },
     { text: 'My Events', icon: <EventIcon />, path: '/my-events' },
-    { text: 'Bookmarks', icon: <BookmarkIcon />, path: '/bookmarks' },
+    { text: 'Bookmarks', icon: <BookmarkIcon />, path: '/profile', state: { showTab: 'saved' } },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ]
 
@@ -260,9 +246,7 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
                 key={item.text}
                 button
                 onClick={() => {
-                  if (item.onClick) {
-                    item.onClick()
-                  } else if (item.path) {
+                  if (item.path) {
                     navigate(item.path)
                     handleMobileMenuClose()
                   }
@@ -298,29 +282,48 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
                 },
               }}
             >
-              Sign In
+              Login
             </Button>
             <Button
+              onClick={() => navigate('/auth', { state: { showRegister: true } })}
               variant="contained"
-              fullWidth
-              onClick={() => {
-                navigate('/auth', { state: { from: location } })
-                handleMobileMenuClose()
-              }}
               sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                bgcolor: 'primary.main',
+                color: 'white',
+                px: 2,
+                py: 0.75,
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(79, 70, 229, 0.25)',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                  bgcolor: 'primary.dark',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)',
                 },
+                transition: 'all 0.2s ease'
               }}
             >
-              Sign Up
+              Register
             </Button>
           </Box>
         )}
       </List>
     </Drawer>
   )
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const handleNotificationItemClick = async (notification) => {
+    if (!notification.isRead) {
+      await markAsRead(notification._id);
+    }
+    // Add any additional handling here (e.g., navigate to event)
+    if (notification.eventId) {
+      navigate(`/event/${notification.eventId}`);
+    }
+    handleNotificationClose();
+  };
 
   return (
     <AppBar 
@@ -354,7 +357,7 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
               }}
             >
               <Badge
-                badgeContent={3}
+                badgeContent={unreadCount}
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
@@ -377,7 +380,7 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
               <>
                 <Button
                   component={Link}
-                  to="/login"
+                  to="/auth"
                   variant="outlined"
                   sx={{
                     color: 'primary.main',
@@ -398,8 +401,7 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
                   Login
                 </Button>
                 <Button
-                  component={Link}
-                  to="/register"
+                  onClick={() => navigate('/auth', { state: { showRegister: true } })}
                   variant="contained"
                   sx={{
                     bgcolor: 'primary.main',
@@ -455,7 +457,7 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
               }}
             >
               <Badge
-                badgeContent={3}
+                badgeContent={unreadCount}
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
@@ -497,25 +499,39 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
         open={Boolean(notificationAnchor)}
         onClose={handleNotificationClose}
         PaperProps={{
-          sx: { width: 220, maxWidth: '100%' }
+          sx: { width: 280, maxWidth: '100%' }
         }}
       >
-        {notifications.map((notification, index) => (
-          <MenuItem
-            key={index}
-            sx={{
-              py: 1.5,
-              px: 2,
-              fontSize: '0.95rem',
-              '&:hover': {
-                bgcolor: 'rgba(79, 70, 229, 0.08)',
-              },
-            }}
-          >
-            <ListItemIcon>{notification.icon}</ListItemIcon>
-            <ListItemText primary={notification.title} secondary={notification.message} />
+        {notifications.length === 0 ? (
+          <MenuItem disabled>
+            <ListItemText primary="No new notifications" />
           </MenuItem>
-        ))}
+        ) : (
+          notifications.map((notification) => (
+            <MenuItem
+              key={notification._id}
+              sx={{
+                py: 1,
+                px: 2,
+                fontSize: '0.9rem',
+                '&:hover': {
+                  bgcolor: 'rgba(79, 70, 229, 0.08)',
+                },
+                whiteSpace: 'normal',
+                wordWrap: 'break-word',
+                display: 'block',
+              }}
+              onClick={() => handleNotificationItemClick(notification)}
+            >
+              <ListItemText 
+                primary={notification.message} 
+                secondary={new Date(notification.createdAt).toLocaleString()}
+                primaryTypographyProps={{ style: { whiteSpace: 'normal' } }}
+                secondaryTypographyProps={{ style: { whiteSpace: 'normal' } }}
+              />
+            </MenuItem>
+          ))
+        )}
       </Menu>
 
       <Menu
@@ -527,27 +543,52 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
         }}
       >
         {userMenuItems.map((item) => (
-          <MenuItem
-            key={item.text}
-            component={Link}
-            to={item.path}
-            onClick={handleProfileClose}
-            sx={{
-              py: 1.5,
-              px: 2,
-              fontSize: '0.95rem',
-              '&:hover': {
-                bgcolor: 'rgba(79, 70, 229, 0.08)',
-              },
-              '&.active': {
-                color: 'primary.main',
-                bgcolor: 'rgba(79, 70, 229, 0.08)',
-                fontWeight: 600,
-              }
-            }}
-          >
-            {item.text}
-          </MenuItem>
+          item.path ? (
+            <MenuItem
+              key={item.text}
+              component={Link}
+              to={item.path}
+              {...(item.state && { state: item.state })}
+              onClick={handleProfileClose}
+              sx={{
+                py: 1.5,
+                px: 2,
+                fontSize: '0.95rem',
+                '&:hover': {
+                  bgcolor: 'rgba(79, 70, 229, 0.08)',
+                },
+                '&.active': {
+                  color: 'primary.main',
+                  bgcolor: 'rgba(79, 70, 229, 0.08)',
+                  fontWeight: 600,
+                }
+              }}
+            >
+              {item.icon && <ListItemIcon>{item.icon}</ListItemIcon>}
+              <ListItemText primary={item.text} />
+            </MenuItem>
+          ) : (
+            <MenuItem 
+              key={item.text} 
+              onClick={() => {
+                if (item.path) {
+                  navigate(item.path)
+                  handleProfileClose()
+                }
+              }}
+              sx={{
+                py: 1.5,
+                px: 2,
+                fontSize: '0.95rem',
+                '&:hover': {
+                  bgcolor: 'rgba(79, 70, 229, 0.08)',
+                },
+              }}
+            >
+              {item.icon && <ListItemIcon>{item.icon}</ListItemIcon>}
+              <ListItemText primary={item.text} />
+            </MenuItem>
+          )
         ))}
         <Divider />
         <MenuItem onClick={handleLogout}>

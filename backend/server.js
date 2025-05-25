@@ -98,6 +98,30 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema)
 
+// Comment Schema
+const commentSchema = new mongoose.Schema({
+  event: {
+    type: Number, // Assuming eventId is a Number
+    required: true,
+    ref: 'Event' // If you have an Event model, reference it
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Reference the User model
+    required: true
+  },
+  text: {
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const Comment = mongoose.model('Comment', commentSchema);
+
 // Auth middleware
 const auth = (req, res, next) => {
   // Get token from header
@@ -271,14 +295,30 @@ app.post("/api/users/events/save", auth, async (req, res) => {
   }
 })
 
+// Get user reminders
+app.get("/api/users/reminders", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+    // Return reminders, sorted by reminderTime
+    const sortedReminders = user.reminders.sort((a, b) => new Date(a.reminderTime) - new Date(b.reminderTime));
+    res.json(sortedReminders);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+
 // Save reminder
 app.post("/api/users/reminders", auth, async (req, res) => {
   try {
-    const { eventId, eventName, eventDate, reminderTime } = req.body
-    const user = await User.findById(req.user.id)
+    const { eventId, eventName, eventDate, reminderTime } = req.body;
+    const user = await User.findById(req.user.id);
 
     // Check if reminder already exists
-    const existingIndex = user.reminders.findIndex((r) => r.eventId === eventId)
+    const existingIndex = user.reminders.findIndex((r) => r.eventId === eventId);
 
     if (existingIndex >= 0) {
       // Update existing reminder
@@ -288,7 +328,7 @@ app.post("/api/users/reminders", auth, async (req, res) => {
         eventDate,
         reminderTime,
         isNotified: false,
-      }
+      };
     } else {
       // Add new reminder
       user.reminders.push({
@@ -297,67 +337,65 @@ app.post("/api/users/reminders", auth, async (req, res) => {
         eventDate,
         reminderTime,
         isNotified: false,
-      })
+      });
     }
 
     // Add notification
-    user.notifications.push({
+    const notification = {
       type: 'reminder',
       message: `Reminder set for ${eventName}`,
       eventId,
       eventName,
-      isRead: false
-    })
-
-    await user.save()
+      isRead: false,
+      createdAt: new Date()
+    };
+    
+    user.notifications.push(notification);
+    await user.save();
 
     // Emit notification to the user
-    io.to(req.user.id).emit('notification', {
-      type: 'reminder',
-      message: `Reminder set for ${eventName}`,
-      eventId,
-      eventName,
-      createdAt: new Date()
-    })
+    io.to(req.user.id).emit('notification', notification);
 
     res.json({ 
       reminders: user.reminders,
-      notification: user.notifications[user.notifications.length - 1]
-    })
+      notification: notification
+    });
   } catch (err) {
-    console.error(err.message)
-    res.status(500).send("Server error")
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
-})
+});
 
-// Get notifications
+// Get user notifications
 app.get("/api/users/notifications", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-    res.json(user.notifications)
+    const user = await User.findById(req.user.id);
+    res.json(user.notifications);
   } catch (err) {
-    console.error(err.message)
-    res.status(500).send("Server error")
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
-})
+});
 
 // Mark notification as read
 app.put("/api/users/notifications/:notificationId/read", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-    const notification = user.notifications.id(req.params.notificationId)
+    const user = await User.findById(req.user.id);
+    const notification = user.notifications.id(req.params.notificationId);
     
-    if (notification) {
-      notification.isRead = true
-      await user.save()
+    if (!notification) {
+      return res.status(404).json({ msg: "Notification not found" });
     }
     
-    res.json(user.notifications)
+    notification.isRead = true;
+    await user.save();
+    
+    res.json(notification);
   } catch (err) {
-    console.error(err.message)
-    res.status(500).send("Server error")
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
-})
+});
 
 // Delete reminder
 app.delete("/api/users/reminders/:eventId", auth, async (req, res) => {
@@ -374,6 +412,92 @@ app.delete("/api/users/reminders/:eventId", auth, async (req, res) => {
     res.status(500).send("Server error")
   }
 })
+
+// Comment Endpoints - Moved before server.listen()
+
+// Get comments for an event
+app.get('/api/events/:eventId/comments', async (req, res) => {
+  try {
+    const comments = await Comment.find({ event: req.params.eventId }).populate('user', ['name']); // Populate user name
+    res.json(comments);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Add a comment to an event
+app.post('/api/events/:eventId/comments', auth, async (req, res) => {
+  try {
+    const newComment = new Comment({
+      event: req.params.eventId,
+      text: req.body.text,
+      user: req.user.id // Get user from auth middleware
+    });
+
+    const comment = await newComment.save();
+    
+    // Populate user name before returning
+    await comment.populate('user', ['name']);
+
+    res.json(comment);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Delete a comment
+app.delete('/api/events/:eventId/comments/:commentId', auth, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+    
+    // Check if comment exists
+    if (!comment) {
+      return res.status(404).json({ msg: 'Comment not found' });
+    }
+    
+    // Check if user owns the comment
+    if (comment.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+    
+    await comment.deleteOne();
+    res.json({ msg: 'Comment removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Update a comment
+app.put('/api/events/:eventId/comments/:commentId', auth, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+    
+    // Check if comment exists
+    if (!comment) {
+      return res.status(404).json({ msg: 'Comment not found' });
+    }
+    
+    // Check if user owns the comment
+    if (comment.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+    
+    // Update comment text
+    comment.text = req.body.text;
+    await comment.save();
+    
+    // Populate user name before returning
+    await comment.populate('user', ['name']);
+    
+    res.json(comment);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 // Start server using PORT environment variable
 const PORT = process.env.PORT || 5000;

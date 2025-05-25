@@ -10,14 +10,18 @@ import EventDetail from "./components/EventDetail"
 import MyReminders from "./components/MyReminders"
 import ProfilePage from "./pages/ProfilePage"
 import AuthPage from "./pages/AuthPage"
+import SettingsPage from "./pages/SettingsPage"
 import ConnectionStatus from "./components/ConnectionStatus"
 import eventsData from "./data/eventsData"
 import { checkReminders } from "./services/ReminderService"
 import { NotificationProvider } from './context/NotificationContext'
 import NotificationBell from './components/NotificationBell'
+import { ThemeModeProvider, useThemeMode } from './context/ThemeContext'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import theme from './theme'
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles'
+import ContactPage from './pages/ContactPage'
+import AboutPage from './pages/AboutPage'
 
 // EventDetail wrapper component to handle params
 const EventDetailWrapper = ({ events, onBack, onViewDetails }) => {
@@ -41,6 +45,7 @@ const EventDetailWrapper = ({ events, onBack, onViewDetails }) => {
 function App() {
   const [showReminders, setShowReminders] = useState(false)
   const navigate = useNavigate();
+  const { mode, toggleColorMode } = useThemeMode();
 
   // Function to view event details
   const viewEventDetails = (eventId) => {
@@ -85,63 +90,64 @@ function App() {
   )
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
-        <NotificationProvider>
-          <Toaster position="top-right" />
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-            <AppBar position="static" color="default" elevation={1}>
-              <Toolbar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Navbar onViewReminders={toggleRemindersModal} />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <NotificationBell />
-                </Box>
-              </Toolbar>
-            </AppBar>
-
-            <Container component="main" maxWidth="lg" sx={{ py: 4, flexGrow: 1 }}>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route 
-                  path="/event/:eventId" 
-                  element={
-                    <EventDetailWrapper
-                      events={eventsData}
-                      onBack={goBackToEvents}
-                      onViewDetails={viewEventDetails}
-                    />
-                  } 
-                />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-
-              {/* My Reminders Modal */}
-              <MyReminders 
-                isOpen={showReminders} 
-                onClose={toggleRemindersModal} 
-                onViewEvent={viewEventDetails} 
-              />
-
-              {/* Connection Status Indicator */}
-              <ConnectionStatus />
-            </Container>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar>
+          <Box sx={{ flexGrow: 1 }}>
+            <Navbar onViewReminders={toggleRemindersModal} />
           </Box>
-        </NotificationProvider>
-      </AuthProvider>
-    </ThemeProvider>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <NotificationBell />
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      <Container component="main" maxWidth="lg" sx={{ py: 4, flexGrow: 1 }}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route 
+            path="/event/:eventId" 
+            element={
+              <EventDetailWrapper
+                events={eventsData}
+                onBack={goBackToEvents}
+                onViewDetails={viewEventDetails}
+              />
+            } 
+          />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+        <MyReminders 
+          isOpen={showReminders} 
+          onClose={toggleRemindersModal} 
+          onViewEvent={viewEventDetails} 
+        />
+
+        <ConnectionStatus />
+      </Container>
+    </Box>
   )
 }
 
-// Wrap App with Router
-const AppWithRouter = () => (
-  <Router>
-    <App />
-  </Router>
-);
+const AppWithRouter = () => {
+  return (
+    <Router>
+      <ThemeModeProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <Toaster position="top-right" />
+            <App />
+          </NotificationProvider>
+        </AuthProvider>
+      </ThemeModeProvider>
+    </Router>
+  );
+};
 
 export default AppWithRouter;

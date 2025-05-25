@@ -1,6 +1,7 @@
 "use client"
 
-import { useContext, useState } from "react"
+import { useContext, useState, useEffect } from "react"
+import { useLocation } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaCalendarAlt, FaBookmark, FaBell, FaTools } from "react-icons/fa"
 import AuthContext from "../context/AuthContext"
 import eventsData from "../data/eventsData"
@@ -10,6 +11,16 @@ const ProfilePage = () => {
   const { user, isAuthenticated, loading } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState("profile")
   const [showConnectionTest, setShowConnectionTest] = useState(false)
+  const location = useLocation();
+
+  // Check for state from navigation to set initial tab
+  useEffect(() => {
+    if (location.state?.showTab) {
+      setActiveTab(location.state.showTab);
+      // Clear the state so refreshing the page doesn't keep the tab active
+      // navigate(location.pathname, { replace: true }); // This would require navigate from react-router-dom
+    }
+  }, [location.state]);
 
   if (loading) {
     return (
