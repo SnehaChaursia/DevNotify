@@ -12,6 +12,7 @@ import {
   AlertTitle,
   useTheme,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import EventCard from "./EventCard"
 import FilterBar from "./FilterBar"
 import SearchContainer from "./SearchContainer"

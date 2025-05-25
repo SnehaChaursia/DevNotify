@@ -10,6 +10,7 @@ import EventDetail from "./components/EventDetail"
 import MyReminders from "./components/MyReminders"
 import ProfilePage from "./pages/ProfilePage"
 import AuthPage from "./pages/AuthPage"
+import AboutPage from "./pages/AboutPage"
 import ConnectionStatus from "./components/ConnectionStatus"
 import eventsData from "./data/eventsData"
 import { checkReminders } from "./services/ReminderService"
@@ -117,6 +118,7 @@ function App() {
                 />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/about" element={<AboutPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
 
