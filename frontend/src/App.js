@@ -17,6 +17,7 @@ import AuthPage from "./pages/AuthPage";
 import SettingsPage from "./pages/SettingsPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import EventsPage from "./pages/EventsPage";
 import ConnectionStatus from "./components/ConnectionStatus";
 import eventsData from "./data/eventsData";
 import { checkReminders } from "./services/ReminderService";
@@ -106,6 +107,7 @@ function App() {
       <Container component="main" maxWidth="lg" sx={{ py: 4, flexGrow: 1 }}>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/events" element={<EventsPage />} />
           <Route
             path="/event/:eventId"
             element={
