@@ -11,17 +11,24 @@ export const useNotifications = () => useContext(NotificationContext);
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [socket, setSocket] = useState(null);
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !user) return;
 
     // Initialize socket connection
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('http://localhost:5000', {
+      auth: {
+        token: localStorage.getItem('token')
+      }
+    });
     setSocket(newSocket);
 
+    // Join user's room
+    joinUserRoom(user.id);
+
     return () => newSocket.close();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (!socket) return;
@@ -44,10 +51,10 @@ export const NotificationProvider = ({ children }) => {
 
   // Fetch notifications when user becomes authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       fetchNotifications();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const joinUserRoom = (userId) => {
     if (socket) {
@@ -57,10 +64,20 @@ export const NotificationProvider = ({ children }) => {
 
   const fetchNotifications = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found, skipping notification fetch');
+        return;
+      }
+
       const response = await api.get('/users/notifications');
       setNotifications(response.data);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      if (error.response?.status === 401) {
+        console.log('Unauthorized: Please log in again');
+      } else {
+        console.error('Error fetching notifications:', error);
+      }
     }
   };
 
@@ -79,15 +96,15 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
-  const value = {
-    notifications,
-    joinUserRoom,
-    fetchNotifications,
-    markAsRead
-  };
-
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        fetchNotifications,
+        markAsRead,
+        joinUserRoom
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   );

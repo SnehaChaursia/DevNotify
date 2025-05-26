@@ -1,6 +1,7 @@
 "use client"
 
-import { useContext, useState } from "react"
+import { useContext, useState, useEffect } from "react"
+import { useLocation } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaCalendarAlt, FaBookmark, FaBell, FaTools } from "react-icons/fa"
 import AuthContext from "../context/AuthContext"
 import eventsData from "../data/eventsData"
@@ -10,6 +11,16 @@ const ProfilePage = () => {
   const { user, isAuthenticated, loading } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState("profile")
   const [showConnectionTest, setShowConnectionTest] = useState(false)
+  const location = useLocation();
+
+  // Check for state from navigation to set initial tab
+  useEffect(() => {
+    if (location.state?.showTab) {
+      setActiveTab(location.state.showTab);
+      // Clear the state so refreshing the page doesn't keep the tab active
+      // navigate(location.pathname, { replace: true }); // This would require navigate from react-router-dom
+    }
+  }, [location.state]);
 
   if (loading) {
     return (
@@ -263,44 +274,6 @@ const ProfilePage = () => {
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {activeTab === "tools" && (
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Developer Tools</h2>
-                <p className="text-gray-600 mb-4">
-                  These tools are helpful for diagnosing issues with the application.
-                </p>
-
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-gray-800 mb-2">Connection Test</h3>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Test the connection between the frontend and backend API.
-                    </p>
-                    <button
-                      onClick={() => setShowConnectionTest(!showConnectionTest)}
-                      className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
-                    >
-                      {showConnectionTest ? "Hide Connection Test" : "Run Connection Test"}
-                    </button>
-
-                    {showConnectionTest && (
-                      <div className="mt-4">
-                        <ConnectionTest />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-gray-800 mb-2">Environment Information</h3>
-                    <div className="bg-gray-100 p-3 rounded font-mono text-sm">
-                      <p>API URL: {process.env.REACT_APP_API_URL || "Not set (using default)"}</p>
-                      <p>Environment: {process.env.NODE_ENV || "development"}</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
           </div>

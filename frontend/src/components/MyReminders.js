@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react"
 import { FaBell, FaTrash, FaCalendarAlt, FaClock, FaTimes } from "react-icons/fa"
 import { getReminders, removeReminder, getTimeRemaining } from "../services/ReminderService"
+import ConfirmationDialog from './ConfirmationDialog'
 
 const MyReminders = ({ isOpen, onClose, onViewEvent }) => {
   const [reminders, setReminders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [reminderToDelete, setReminderToDelete] = useState(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -23,11 +26,30 @@ const MyReminders = ({ isOpen, onClose, onViewEvent }) => {
     setLoading(false)
   }
 
-  const handleRemoveReminder = (eventId) => {
-    const success = removeReminder(eventId)
-    if (success) {
-      loadReminders()
+  const handleOpenDialog = (eventId) => {
+    setReminderToDelete(eventId)
+    setDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false)
+    setReminderToDelete(null)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (reminderToDelete !== null) {
+      const success = await removeReminder(reminderToDelete)
+      if (success) {
+        loadReminders()
+      } else {
+        console.error("Failed to remove reminder.")
+      }
+      handleCloseDialog()
     }
+  }
+
+  const handleRemoveReminder = (eventId) => {
+    handleOpenDialog(eventId)
   }
 
   if (!isOpen) return null
@@ -84,7 +106,7 @@ const MyReminders = ({ isOpen, onClose, onViewEvent }) => {
                       <div className="flex justify-between items-start">
                         <h4 className="font-semibold text-gray-800">{reminder.eventName}</h4>
                         <button
-                          onClick={() => handleRemoveReminder(reminder.eventId)}
+                          onClick={() => handleOpenDialog(reminder.eventId)}
                           className="text-gray-400 hover:text-red-500"
                           aria-label="Remove reminder"
                         >
@@ -157,6 +179,14 @@ const MyReminders = ({ isOpen, onClose, onViewEvent }) => {
           )}
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onConfirm={handleConfirmDelete}
+        title="Confirm Reminder Deletion"
+        description="Are you sure you want to delete this reminder? This action cannot be undone."
+      />
     </div>
   )
 }

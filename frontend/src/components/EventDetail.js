@@ -28,6 +28,7 @@ import { useNotifications } from '../context/NotificationContext'
 import AuthModal from "./auth/AuthModal"
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
+import CommentsSection from './CommentsSection'
 
 const EventDetail = ({ event, events, onBack, onViewDetails }) => {
   const [isSaved, setIsSaved] = useState(event?.isSaved || false)
@@ -543,6 +544,10 @@ const EventDetail = ({ event, events, onBack, onViewDetails }) => {
                     <p className="text-gray-600">No similar events found.</p>
                   )}
                 </div>
+
+                {/* Add Comments Section */}
+                <CommentsSection eventId={event.id} />
+
               </div>
             </div>
           </div>

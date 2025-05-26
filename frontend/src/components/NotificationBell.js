@@ -3,23 +3,40 @@ import { FaBell } from 'react-icons/fa';
 import { useNotifications } from '../context/NotificationContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AuthContext from '../context/AuthContext';
+import { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, fetchNotifications, markAsRead } = useNotifications();
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    if (isAuthenticated) {
+      fetchNotifications();
+    }
+  }, [fetchNotifications, isAuthenticated]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleNotificationClick = (notification) => {
+  const handleNotificationClick = async (notification) => {
     if (!notification.isRead) {
-      markAsRead(notification._id);
+      await markAsRead(notification._id);
     }
-    // Add any additional handling here (e.g., navigate to event)
+    
+    // If the notification has an eventId, navigate to that event
+    if (notification.eventId) {
+      navigate(`/event/${notification.eventId}`);
+    }
+    
+    setIsOpen(false);
   };
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="relative">
