@@ -81,8 +81,7 @@ const Navbar = ({ onViewReminders, onNavigateToProfile }) => {
   const menuItems = [
     { text: 'Home', path: '/' },
     { text: 'Events', path: '/events' },
-    { text: 'About', path: '/about' },
-    { text: 'Contact', path: '/contact' }
+    { text: 'About', path: '/about' }
   ];
 
   const Logo = () => (
