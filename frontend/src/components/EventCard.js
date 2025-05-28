@@ -243,19 +243,24 @@ const EventCard = ({ event, onViewDetails }) => {
           </Box>
 
           <Button
-            variant="text"
-            color="primary"
-            endIcon="→"
-            sx={{ 
-              fontWeight: 500,
-              color: theme.palette.primary.main,
-              '&:hover': { 
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
-              }
-            }}
-          >
-            View Details
-          </Button>
+  variant="text"
+  color="primary"
+  endIcon="→"
+  onClick={(e) => {
+    e.stopPropagation();  // Prevents parent card click if needed
+    onViewDetails(event._id); // ✅ Navigate to event detail page
+  }}
+  sx={{ 
+    fontWeight: 500,
+    color: theme.palette.primary.main,
+    '&:hover': { 
+      bgcolor: alpha(theme.palette.primary.main, 0.1),
+    }
+  }}
+>
+  View Details
+</Button>
+
         </Box>
       </CardContent>
     </Card>
